@@ -16,12 +16,21 @@ class Container implements ContainerInterface
 {
 
 
+    /**
+     * @var array
+     */
     private static $shared;
 
 
+    /**
+     * @var array
+     */
     private $providers;
 
 
+    /**
+     * @var array
+     */
     private $bond;
 
 
@@ -48,6 +57,19 @@ class Container implements ContainerInterface
      * @var array
      */
     private $expected;
+
+    /**
+     * Container constructor.
+     * @param ProviderRepository $repository
+     */
+    public function __construct(ProviderRepository $repository = null)
+    {
+        $this->providers = $repository;
+
+        if (null !== $this->providers) {
+            $this->handleProviders();
+        }
+    }
 
     /**
      * @param string $alias
