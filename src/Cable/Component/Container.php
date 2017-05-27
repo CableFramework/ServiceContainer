@@ -121,15 +121,15 @@ class Container implements ContainerInterface
      */
     public function add($alias, $callback, $share = false)
     {
-        if (true === $share) {
-            return $this->share($alias, $callback);
-        }
-
-
-        $this->bond[$alias] =
         $definition = $this->resolveDefinition(
             $callback
         );
+
+        if ($share === true) {
+            static::$shared[$alias] = $definition;
+        } else {
+            $this->bond[$alias] = $definition;
+        }
 
 
         return $definition;
@@ -171,17 +171,19 @@ class Container implements ContainerInterface
      * @param string $alias
      * @param mixed $callback
      * @throws ResolverException
-     * @return $this
+     * @return AbstractDefinition
      */
     public function share($alias, $callback)
     {
-        static::$shared[$alias] = $callback;
-
-        return $this;
+        return $this->add(
+            $alias,
+            $callback,
+            true
+        );
     }
 
     /**
-     * @param AbstractDefinition $callback
+     * @param AbstractDefinition $definition
      * @return mixed
      * @throws ResolverException
      */
@@ -255,7 +257,6 @@ class Container implements ContainerInterface
         $definition = isset($this->bond[$alias]) ?
             $this->bond[$alias] :
             static::$shared[$alias];
-
 
 
         $resolver = $this->determineResolver($definition);
