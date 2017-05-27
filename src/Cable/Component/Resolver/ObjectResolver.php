@@ -6,16 +6,15 @@ class ObjectResolver extends Resolver
 {
 
 
-    use ClassAwareTrait, ArgsAwareTrait;
+    use ClassAwareTrait;
 
     /**
      * ObjectResolver constructor.
      * @param $class
      */
-    public function __construct( $class, $args)
+    public function __construct($class)
     {
         $this->class = $class;
-        $this->args = $args;
     }
 
     /**
@@ -29,19 +28,20 @@ class ObjectResolver extends Resolver
 
         $class = new \ReflectionClass($this->class);
 
+        $args = $this->getInstance()->getArgs();
 
         /**
          * @var $this->class ReflectionClass
          */
 
         if (null === ($constructor = $class->getConstructor())) {
-            return $this->class->newInstance();
+            return $class->newInstance();
         }
 
         $method = new ConstructorResolver(
             $class,
             $constructor,
-            $this->args
+            $args
         );
 
         $method->setInstance(
