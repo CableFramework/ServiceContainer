@@ -113,9 +113,12 @@ class Container implements ContainerInterface
 
 
     /**
-     * @param string $alias
-     * @param mixed $callback
-     * @param bool $share
+     * @param string $alias the alias name of instance, you might wanna give an interface name
+     * @param mixed $callback the callback can be an object, Closure or the name of class
+     * @example add('mysql', 'MysqlInterface')
+     * @param bool $share if you put true on this argument, this will shared with other container objects
+     * @see Container::share()
+     * @example add('mysql', 'MysqlInterface', true);
      * @throws ResolverException
      * @return AbstractDefinition
      */
