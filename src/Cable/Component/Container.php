@@ -78,20 +78,31 @@ class Container implements ContainerInterface
     {
         $providers = $this->providers->getProviders();
 
-        foreach ($providers as $provider){
-            if ( is_string($provider)) {
-                $provider = new $provider;
-            }
-
+        foreach ($providers as $provider) {
             $this->addProvider($provider);
         }
     }
 
     /**
-     * @param ServiceProvider $provider
+     * @param $provider
      * @return $this
+     * @throws ProviderException
      */
-    public function addProvider(ServiceProvider $provider){
+    public function addProvider($provider)
+    {
+        if (is_string($provider)) {
+            $provider = new  $provider;
+        }
+
+        if ( ! $provider instanceof ServiceProvider) {
+            throw new ProviderException(
+                sprintf(
+                    '%s provider is not as expected',
+                    get_class($provider)
+                )
+            );
+        }
+
         $provider->setContainer($this)
             ->boot();
 
@@ -174,7 +185,7 @@ class Container implements ContainerInterface
      * @return mixed
      * @throws ResolverException
      */
-    private function determineResolver( $definition)
+    private function determineResolver($definition)
     {
         $callback = $definition->getInstance();
         $type = gettype($callback);
@@ -249,14 +260,14 @@ class Container implements ContainerInterface
 
         $resolver = $this->determineResolver($definition);
 
-       $resolved =  $this->checkExpectation(
-           $alias,
-           $resolver->resolve()
-       );
+        $resolved = $this->checkExpectation(
+            $alias,
+            $resolver->resolve()
+        );
 
-       $this->saveResolved($alias, $resolved);
+        $this->saveResolved($alias, $resolved);
 
-       return $resolved;
+        return $resolved;
     }
 
     /**
@@ -265,14 +276,15 @@ class Container implements ContainerInterface
      */
     private function saveResolved($alias, $resolved)
     {
-        $type = isset($this->bond[$alias]) ? 'not-shared'  : 'shared';
+        $type = isset($this->bond[$alias]) ? 'not-shared' : 'shared';
 
         if ($type === 'shared') {
             static::$sharedResolved[$alias] = $resolved;
-        }else{
+        } else {
             $this->resolved[$alias] = $resolved;
         }
     }
+
     /**
      * @param string $alias
      * @param object $instance
@@ -281,11 +293,11 @@ class Container implements ContainerInterface
      */
     private function checkExpectation($alias, $instance)
     {
-        if ( !isset($this->expected[$alias])) {
+        if ( ! isset($this->expected[$alias])) {
             return $instance;
         }
 
-        if ( !$instance instanceof $this->expected[$alias]) {
+        if ( ! $instance instanceof $this->expected[$alias]) {
             throw new ExpectationException(
                 sprintf(
                     'in %s alias we were expecting %s, %s returned',

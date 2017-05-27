@@ -26,6 +26,10 @@ class ObjectResolver extends Resolver
     public function resolve()
     {
 
+        if (is_object($instance = $this->getInstance()->getInstance())) {
+            return $instance;
+        }
+
         $class = new \ReflectionClass($this->class);
 
         $args = $this->getInstance()->getArgs();
