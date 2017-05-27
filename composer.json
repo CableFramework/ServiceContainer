@@ -1,0 +1,21 @@
+{
+    "name": "cable/cable-container",
+    "description": "Container Component for CableFramework",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "anonymframework",
+            "email": "vahit.serif119@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Cable\\Container\\" : "src/Cable/Component"
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "league/pipeline" : "0.3.0"
+    }
+}
