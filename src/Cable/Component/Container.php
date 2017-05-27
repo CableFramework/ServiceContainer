@@ -2,6 +2,8 @@
 
 namespace Cable\Container;
 
+use Cable\Container\Definition\AbstractDefinition;
+use Cable\Container\Definition\ObjectDefinition;
 use Cable\Container\Resolver\ResolverException;
 
 /**
@@ -22,12 +24,24 @@ class Container implements ContainerInterface
 
     private $bond;
 
+
+    /**
+     * @var array
+     */
+    private $resolved;
+
+    /**
+     * @var array
+     */
+    private static $sharedResolved;
+
     /**
      * @var array
      */
     private $resolvers = [
         'closure' => 'Cable\Container\Resolver\ClosureResolver',
         'object' => 'Cable\Container\Resolver\ObjectResolver',
+        'string' => 'Cable\Container\Resolver\ObjectResolver',
     ];
 
     /**
@@ -40,18 +54,38 @@ class Container implements ContainerInterface
      * @param mixed $callback
      * @param bool $share
      * @throws ResolverException
-     * @return $this
+     * @return AbstractDefinition
      */
     public function add($alias, $callback, $share = false)
     {
-        if (false === $share) {
+        if (true === $share) {
             return $this->share($alias, $callback);
         }
 
-        $this->bond[$alias] = $this
-            ->determineResolver($callback);
 
-        return $this;
+        $this->bond[$alias] =
+        $definition = $this->resolveDefinition(
+            $callback
+        );
+
+
+        return $definition;
+    }
+
+    /**
+     * @param mixed $callback
+     * @return Definition\AbstractDefinition
+     */
+    public function resolveDefinition($callback)
+    {
+
+        $definition = new ObjectDefinition();
+
+
+        return $definition->setInstance(
+            $callback
+        );
+
     }
 
     /**
@@ -78,35 +112,38 @@ class Container implements ContainerInterface
      */
     public function share($alias, $callback)
     {
-        static::$shared[$alias] = $this->determineResolver($callback);
+        static::$shared[$alias] = $callback;
 
         return $this;
     }
 
     /**
-     * @param mixed $callback
+     * @param AbstractDefinition $callback
      * @return mixed
      * @throws ResolverException
      */
-    private function determineResolver($callback)
+    private function determineResolver( $definition)
     {
+        $callback = $definition->getInstance();
         $type = gettype($callback);
 
         if ($callback instanceof \Closure) {
             $type = 'closure';
         }
 
-        return $this->prepareResolver($type, $callback);
 
+        return $this->prepareResolver($type, $callback, $definition);
     }
+
 
     /**
      * @param string $type
      * @param mixed $callback
+     * @param AbstractDefinition $definition
      * @return mixed
      * @throws ResolverException
      */
-    private function prepareResolver($type, $callback)
+    private function prepareResolver($type, $callback, AbstractDefinition $definition)
     {
         if ( ! isset($this->resolvers[$type])) {
             throw new ResolverException(
@@ -119,60 +156,98 @@ class Container implements ContainerInterface
 
         $resolver = $this->resolvers[$type];
 
-        return (new $resolver)
-            ->setInstance($callback)
+        $resolver = (new $resolver($callback))
+            ->setInstance($definition)
             ->setContainer($this);
+
+        return $resolver;
     }
 
 
     /**
      * @param string $alias
-     * @param array $args
      * @throws NotFoundException
      * @throws ResolverException
+     * @throws ExpectationException
      * @return mixed
      */
-    public function resolve(
-        $alias,
-        array $args = []
-    ) {
+    public function resolve($alias)
+    {
+
+        if ($this->hasResolvedBefore($alias)) {
+            return $this->getAlreadyResolved($alias);
+        }
+
 
         if (false === $this->has($alias)) {
             $this->add(
-                $alias = $this->getAliasFromInstance($alias),
                 $alias,
-                $args
+                $alias
             );
 
             return $this->resolve($alias);
         }
 
-        $instance = isset($this->bond[$alias]) ?
+
+        $definition = isset($this->bond[$alias]) ?
             $this->bond[$alias] :
             static::$shared[$alias];
 
-        return $instance->resolve();
-    }
 
+
+        $resolver = $this->determineResolver($definition);
+
+       return $this->checkExpectation(
+           $alias,
+           $resolver->resolve()
+       );
+    }
 
     /**
      * @param string $alias
-     * @throws NotFoundException
+     * @param object $instance
+     * @return mixed
+     * @throws ExpectationException
      */
-    private function determineExistsOrThrowException($alias)
+    private function checkExpectation($alias, $instance)
     {
-        if ( ! $this->has($alias)) {
-            throw new NotFoundException(
+        if ( !isset($this->expected[$alias])) {
+            return $instance;
+        }
+
+        if ( !$instance instanceof $this->expected[$alias]) {
+            throw new ExpectationException(
                 sprintf(
-                    '%s not found in container',
-                    $alias
+                    'in %s alias we were expecting %s, %s returned',
+                    $alias,
+                    $this->expected[$alias],
+                    get_class($instance)
                 )
             );
         }
 
-
+        return $instance;
     }
 
+    /**
+     * @param string $alias
+     * @return mixed
+     */
+    public function getAlreadyResolved($alias)
+    {
+        return isset($this->resolved[$alias]) ?
+            $this->resolved[$alias] :
+            static::$sharedResolved[$alias];
+    }
+
+    /**
+     * @param string $alias
+     * @return bool
+     */
+    public function hasResolvedBefore($alias)
+    {
+        return isset($this->resolved[$alias]) || isset(static::$sharedResolved[$alias]);
+    }
 
     /**
      * @param string $alias

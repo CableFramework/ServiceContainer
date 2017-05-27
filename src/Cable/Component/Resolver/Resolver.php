@@ -4,6 +4,7 @@ namespace Cable\Container\Resolver;
 
 
 use Cable\Container\ContainerInterface;
+use Cable\Container\Definition\AbstractDefinition;
 
 abstract class Resolver
 {
@@ -14,19 +15,17 @@ abstract class Resolver
     protected $container;
 
     /**
-     * @var mixed
+     * @var AbstractDefinition
      */
     protected $instance;
-
 
 
     /**
      *  resolves the instance
      *
-     * @param array $args
      * @return mixed
      */
-    abstract public function resolve(array $args = []);
+    abstract public function resolve();
 
 
     /**
@@ -48,18 +47,18 @@ abstract class Resolver
     }
 
     /**
-     * @return mixed
+     * @return AbstractDefinition
      */
-    public function getİnstance()
+    public function getInstance()
     {
         return $this->instance;
     }
 
     /**
-     * @param mixed $instance
+     * @param AbstractDefinition $instance
      * @return Resolver
      */
-    public function setİnstance($instance)
+    public function setInstance(AbstractDefinition $instance = null)
     {
         $this->instance = $instance;
 
