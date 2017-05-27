@@ -197,12 +197,30 @@ class Container implements ContainerInterface
 
         $resolver = $this->determineResolver($definition);
 
-       return $this->checkExpectation(
+       $resolved =  $this->checkExpectation(
            $alias,
            $resolver->resolve()
        );
+
+       $this->saveResolved($alias, $resolved);
+
+       return $resolved;
     }
 
+    /**
+     * @param $alias
+     * @param $resolved
+     */
+    private function saveResolved($alias, $resolved)
+    {
+        $type = isset($this->bond[$alias]) ? 'not-shared'  : 'shared';
+
+        if ($type === 'shared') {
+            static::$sharedResolved[$alias] = $resolved;
+        }else{
+            $this->resolved[$alias] = $resolved;
+        }
+    }
     /**
      * @param string $alias
      * @param object $instance
