@@ -72,6 +72,36 @@ class Container implements ContainerInterface
     }
 
     /**
+     *  resolves providers
+     */
+    private function handleProviders()
+    {
+        $providers = $this->providers->getProviders();
+
+        foreach ($providers as $provider){
+            if ( is_string($provider)) {
+                $provider = new $provider;
+            }
+
+            $this->addProvider($provider);
+        }
+    }
+
+    /**
+     * @param ServiceProvider $provider
+     * @return $this
+     */
+    public function addProvider(ServiceProvider $provider){
+        $provider->setContainer($this)
+            ->boot();
+
+        $provider->register();
+
+        return $this;
+    }
+
+
+    /**
      * @param string $alias
      * @param mixed $callback
      * @param bool $share

@@ -5,6 +5,11 @@ abstract  class ServiceProvider
 {
 
     /**
+     * @var Container
+     */
+    protected $container;
+
+    /**
      * register new providers or something
      *
      * @return mixed
@@ -17,6 +22,25 @@ abstract  class ServiceProvider
      * @return mixed
      */
     abstract public function register();
+
+    /**
+     * @return Container
+     */
+    public function getContainer()
+    {
+        return $this->container;
+    }
+
+    /**
+     * @param Container $container
+     * @return ServiceProvider
+     */
+    public function setContainer(Container $container)
+    {
+        $this->container = $container;
+
+        return $this;
+    }
 
 
     /**
