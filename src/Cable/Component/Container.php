@@ -12,7 +12,7 @@ use Cable\Container\Resolver\ResolverException;
  * Date: 05/10/2017
  * Time: 18:55
  */
-class Container implements ContainerInterface
+class Container implements ContainerInterface, \ArrayAccess
 {
 
 
@@ -342,5 +342,127 @@ class Container implements ContainerInterface
     public function has($alias)
     {
         return isset($this->bond[$alias]) || isset(static::$shared[$alias]);
+    }
+
+    /**
+     * @param string $alias
+     * @throws NotFoundException
+     * @return mixed
+     */
+    public function delete($alias){
+        if (isset($this->bond[$alias])) {
+            return $this->deleteFromBond($alias);
+        }
+
+        return $this->deleteFromShare($alias);
+    }
+
+
+    /**
+     * @param string $alias
+     * @return $this
+     * @throws NotFoundException
+     */
+    public function deleteFromBond($alias){
+        if ( !isset($this->bond[$alias])) {
+            throw new NotFoundException(
+                sprintf(
+                    '%s bond not found',
+                    $alias
+                )
+            );
+        }
+
+        unset(
+            $this->bond[$alias]
+        );
+
+        return $this;
+    }
+
+
+    /**
+     * @param string $alias
+     * @return $this
+     * @throws NotFoundException
+     */
+    public function deleteFromShare($alias){
+        if ( !isset(static::$shared[$alias])) {
+            throw new NotFoundException(
+                sprintf(
+                    '%s bond not found',
+                    $alias
+                )
+            );
+        }
+
+        unset(
+            static::$shared[$alias]
+        );
+
+        return $this;
+    }
+    /**
+     * Whether a offset exists
+     * @link http://php.net/manual/en/arrayaccess.offsetexists.php
+     * @param mixed $offset <p>
+     * An offset to check for.
+     * </p>
+     * @return boolean true on success or false on failure.
+     * </p>
+     * <p>
+     * The return value will be casted to boolean if non-boolean was returned.
+     * @since 5.0.0
+     */
+    public function offsetExists($offset)
+    {
+        return $this->has($offset);
+    }
+
+    /**
+     * Offset to retrieve
+     * @link http://php.net/manual/en/arrayaccess.offsetget.php
+     * @param mixed $offset <p>
+     * The offset to retrieve.
+     * </p>
+     * @return mixed Can return all value types.
+     * @since 5.0.0
+     */
+    public function offsetGet($offset)
+    {
+        return $this->resolve($offset);
+    }
+
+    /**
+     * Offset to set
+     * @link http://php.net/manual/en/arrayaccess.offsetset.php
+     * @param mixed $offset <p>
+     * The offset to assign the value to.
+     * </p>
+     * @param mixed $value <p>
+     * The value to set.
+     * </p>
+     * @return void
+     * @throws ResolverException
+     * @since 5.0.0
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->add($offset, $value);
+    }
+
+    /**
+     * Offset to unset
+     * @link http://php.net/manual/en/arrayaccess.offsetunset.php
+     * @param mixed $offset <p>
+     * The offset to unset.
+     * </p>
+     * @return void
+     * @throws NotFoundException
+     * @since 5.0.0
+     */
+    public function offsetUnset($offset)
+    {
+        $this->delete($offset);
     }
 }
