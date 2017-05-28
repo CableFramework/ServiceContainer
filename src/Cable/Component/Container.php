@@ -465,4 +465,31 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         $this->delete($offset);
     }
+
+    /**
+     * @param $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return $this->resolve($name);
+    }
+
+    /**
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $this->add($name, $value);
+    }
+
+    /**
+     * @param $name
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return $this->has($name);
+    }
 }
