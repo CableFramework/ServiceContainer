@@ -241,9 +241,8 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws ExpectationException
      * @return mixed
      */
-    public function resolve($alias)
+    public function resolve($alias, array $args = [])
     {
-
         if ($this->hasResolvedBefore($alias)) {
             return $this->getAlreadyResolved($alias);
         }
@@ -262,6 +261,10 @@ class Container implements ContainerInterface, \ArrayAccess
         $definition = isset($this->bond[$alias]) ?
             $this->bond[$alias] :
             static::$shared[$alias];
+
+        if ( ! empty($args)) {
+            $definition->withArgs($args);
+        }
 
 
         $resolver = $this->determineResolver($definition);
@@ -421,12 +424,15 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
-     * @param $alias
-     * @param $method
+     * @param string $alias the name, instance or alias of class
+     * @param string $method the name method
+     * @param array $args the args will be passed in to resolver, give empty if you already passed them
      * @return mixed
      * @throws NotFoundException
+     * @throw ResolverException
+     * @throws \ReflectionException
      */
-    public function method($alias, $method)
+    public function method($alias, $method, array $args = [])
     {
         if ( ! $this->has($alias)) {
             $this->add($alias, $alias);
@@ -444,10 +450,16 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
+        $selectedMethod = $class->getMethod($method);
+
+        if ( ! empty($args)) {
+            $selectedMethod->withArgs($args);
+        }
+
         $methodResolver = new MethodResolver(
             $class,
             $method,
-            $class->getMethod($method)->getArgs()
+            $selectedMethod
         );
 
         $methodResolver->setContainer($this);
