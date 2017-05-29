@@ -4,6 +4,7 @@ namespace Cable\Container;
 
 use Cable\Container\Definition\AbstractDefinition;
 use Cable\Container\Definition\ObjectDefinition;
+use Cable\Container\Resolver\MethodResolver;
 use Cable\Container\Resolver\ResolverException;
 
 /**
@@ -401,6 +402,41 @@ class Container implements ContainerInterface, \ArrayAccess
         );
 
         return $this;
+    }
+
+    public function method($alias, $method)
+    {
+        if ( !$this->has($alias)) {
+            $this->add($alias, $alias);
+        }
+
+        $class = $this->getBond($alias);
+
+        if ( !$class->hasMethod($method)) {
+            throw new NotFoundException(
+                sprintf(
+                    '%s method not found in %s alias',
+                    $method,
+                    $alias
+                )
+            );
+        }
+
+        $methodResolver = new MethodResolver(
+            $class, $class->getMethod()->getArgs()
+        );
+
+
+        return $methodResolver->resolve();
+    }
+
+    /**
+     * @param $alias
+     * @return ObjectDefinition
+     */
+    public function getBond($alias)
+    {
+        return $this->bond[$alias];
     }
     /**
      * Whether a offset exists

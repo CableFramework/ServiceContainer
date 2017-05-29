@@ -23,9 +23,9 @@ class ObjectDefinition extends AbstractDefinition
         $definition = new MethodDefiniton($name);
 
         $definition->setInstance(
-            $this
+            $this->getInstance()
         );
 
-        return $definition;
+        return $this->methods[$name];
     }
 }
