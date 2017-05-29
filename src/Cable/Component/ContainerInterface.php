@@ -2,7 +2,10 @@
 
 namespace Cable\Container;
 
-
+/**
+ * Interface ContainerInterface
+ * @package Cable\Container
+ */
 interface ContainerInterface
 {
     /**
