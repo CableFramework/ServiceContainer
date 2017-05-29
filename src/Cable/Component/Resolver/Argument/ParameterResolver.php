@@ -13,12 +13,13 @@ class ParameterResolver extends Resolver
      * @var array
      */
     private $args;
+
     /**
      * ParameterResolver constructor.
      * @param \ReflectionFunctionAbstract $class
      * @param array $args
      */
-    public function __construct(\ReflectionFunctionAbstract $class, array  $args = [])
+    public function __construct(\ReflectionFunctionAbstract $class, array $args = [])
     {
         $this->args = $args;
         $this->class = $class;
@@ -35,6 +36,7 @@ class ParameterResolver extends Resolver
     /**
      *  resolves the instance
      *
+     * @throws ArgumentException
      * @return array
      */
     public function resolve()
@@ -44,19 +46,7 @@ class ParameterResolver extends Resolver
         $bonded = [];
 
         foreach ($parameters as $parameter) {
-            if (null !== ($class = $this->isClass($parameter))) {
-
-
-                $bond = $this
-                    ->getContainer()
-                    ->resolve(
-                        $class->getName()
-                    );
-            } else {
-                $bond = $this->resolveParamWithArgs($parameter, $this->args);
-            }
-
-            $bonded[$parameter->getName()] = $bond;
+            $bonded[$parameter->getName()] = $this->resolveParameter($parameter);
         }
 
         return $bonded;
@@ -64,27 +54,45 @@ class ParameterResolver extends Resolver
 
     /**
      * @param \ReflectionParameter $parameter
-     * @param $args
      * @throws ArgumentException
      * @return null
      */
-    private function resolveParamWithArgs(\ReflectionParameter $parameter, $args)
+    private function resolveParameter(\ReflectionParameter $parameter)
     {
-        if ( ! isset($args[$parameter->getName()])) {
-                $this->throwExceptionIsNotSupportedNull($parameter);
+        if (null !== ($class = $this->isClass($parameter))) {
+            return $this->getContainer()
+                ->resolve(
+                    $class->getName()
+                );
+        }
+
+        return $this->resolveParamWithArgs($parameter);
+    }
+
+
+    /**
+     * @param \ReflectionParameter $parameter
+     * @throws ArgumentException
+     * @return null
+     */
+    private function resolveParamWithArgs(\ReflectionParameter $parameter)
+    {
+        if ( ! isset($this->args[$parameter->getName()])) {
+            $this->throwExceptionIsNotSupportedNull($parameter);
 
 
             return null;
         }
 
-        return $args[$parameter->getName()];
+        return $this->args[$parameter->getName()];
     }
 
     /**
      * @param \ReflectionParameter $parameter
      * @throws ArgumentException
      */
-    private function throwExceptionIsNotSupportedNull(\ReflectionParameter $parameter){
+    private function throwExceptionIsNotSupportedNull(\ReflectionParameter $parameter)
+    {
         if (null === $parameter->getType() || false === $parameter->getType()->allowsNull()) {
             throw new ArgumentException(
                 sprintf(

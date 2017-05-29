@@ -1,4 +1,5 @@
 <?php
+
 namespace Cable\Container\Resolver;
 
 use Cable\Container\Resolver\Argument\ParameterResolver;
@@ -8,14 +9,17 @@ class MethodResolver extends Resolver
 
     use ClassAwareTrait, ArgsAwareTrait;
 
+    private $name;
+
     /**
      * MethodResolver constructor.
      * @param $class
      */
-    public function __construct($class, $args)
+    public function __construct($class, $name, $args)
     {
         $this->class = $class;
         $this->args = $args;
+        $this->name = $name;
     }
 
     /**
@@ -27,24 +31,53 @@ class MethodResolver extends Resolver
      */
     public function resolve()
     {
+        $class = $this->getObjectInstance($this->class->getInstance());
 
-        $parameterResolver = new ParameterResolver($this->class, $this->args);
+        $method = new \ReflectionMethod(
+            $class, $this->name
+        );
+
+        $parameterResolver = new ParameterResolver($method, $this->args);
 
         $parameterResolver->setContainer(
             $this->getContainer()
         )->setInstance(
-            $this->getInstance()
+            $this->class
         );
 
         $parameters = $parameterResolver->resolve();
 
 
-
-        return $this->class->invokeArgs(
-            $this->getInstance()->getInstance(),
+        return $method->invokeArgs(
+            $class,
             $parameters
         );
 
         return $method->resolve();
+    }
+
+
+    /**
+     * returns object
+     *
+     * @throws \ReflectionException
+     * @param $class
+     * @return mixed
+     */
+    private function getObjectInstance($class){
+
+        if (is_object($class)) {
+                return $class;
+        }
+
+
+
+        $objectResolver = new ObjectResolver($class);
+
+        $objectResolver->setInstance(
+            $this->class
+        )->setContainer($this->getContainer());
+
+        return $objectResolver->resolve();
     }
 }

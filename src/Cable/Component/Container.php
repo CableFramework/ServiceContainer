@@ -3,6 +3,7 @@
 namespace Cable\Container;
 
 use Cable\Container\Definition\AbstractDefinition;
+use Cable\Container\Definition\MethodDefiniton;
 use Cable\Container\Definition\ObjectDefinition;
 use Cable\Container\Resolver\MethodResolver;
 use Cable\Container\Resolver\ResolverException;
@@ -349,7 +350,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param $class
      * @param $method
      * @throws ResolverException
-     * @return mixed
+     * @return MethodDefiniton
      */
     public function addMethod($class, $method)
     {
@@ -444,9 +445,12 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         $methodResolver = new MethodResolver(
-            $class, $class->getMethod($method)->getArgs()
+            $class,
+            $method,
+            $class->getMethod($method)->getArgs()
         );
 
+        $methodResolver->setContainer($this);
 
         return $methodResolver->resolve();
     }
