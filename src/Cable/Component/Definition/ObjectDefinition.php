@@ -26,6 +26,26 @@ class ObjectDefinition extends AbstractDefinition
             $this->getInstance()
         );
 
+        $this->methods[$name] = $name;
+
         return $this->methods[$name];
+    }
+
+
+    /**
+     * @param $name
+     * @return mixed
+     */
+    public function getMethod($name)
+    {
+        return $this->methods[$name];
+    }
+    /**
+     * @param $name
+     * @return bool
+     */
+    public function hasMethod($name)
+    {
+        return isset($this->methods[$name]);
     }
 }

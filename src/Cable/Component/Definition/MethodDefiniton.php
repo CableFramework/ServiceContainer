@@ -30,6 +30,8 @@ class MethodDefiniton extends AbstractDefinition
         $this->name = $name;
     }
 
+
+
     /**
      * @param string $type
      * @return $this

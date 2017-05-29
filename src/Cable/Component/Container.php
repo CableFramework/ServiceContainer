@@ -346,11 +346,23 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
+     * @param $class
+     * @param $method
+     * @throws ResolverException
+     * @return mixed
+     */
+    public function addMethod($class, $method)
+    {
+        return $this->add($class, $class)->withMethod($method);
+    }
+
+    /**
      * @param string $alias
      * @throws NotFoundException
      * @return mixed
      */
-    public function delete($alias){
+    public function delete($alias)
+    {
         if (isset($this->bond[$alias])) {
             return $this->deleteFromBond($alias);
         }
@@ -364,8 +376,9 @@ class Container implements ContainerInterface, \ArrayAccess
      * @return $this
      * @throws NotFoundException
      */
-    public function deleteFromBond($alias){
-        if ( !isset($this->bond[$alias])) {
+    public function deleteFromBond($alias)
+    {
+        if ( ! isset($this->bond[$alias])) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -387,8 +400,9 @@ class Container implements ContainerInterface, \ArrayAccess
      * @return $this
      * @throws NotFoundException
      */
-    public function deleteFromShare($alias){
-        if ( !isset(static::$shared[$alias])) {
+    public function deleteFromShare($alias)
+    {
+        if ( ! isset(static::$shared[$alias])) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -404,15 +418,22 @@ class Container implements ContainerInterface, \ArrayAccess
         return $this;
     }
 
+
+    /**
+     * @param $alias
+     * @param $method
+     * @return mixed
+     * @throws NotFoundException
+     */
     public function method($alias, $method)
     {
-        if ( !$this->has($alias)) {
+        if ( ! $this->has($alias)) {
             $this->add($alias, $alias);
         }
 
         $class = $this->getBond($alias);
 
-        if ( !$class->hasMethod($method)) {
+        if ( ! $class->hasMethod($method)) {
             throw new NotFoundException(
                 sprintf(
                     '%s method not found in %s alias',
@@ -423,7 +444,7 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         $methodResolver = new MethodResolver(
-            $class, $class->getMethod()->getArgs()
+            $class, $class->getMethod($method)->getArgs()
         );
 
 
@@ -438,6 +459,7 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         return $this->bond[$alias];
     }
+
     /**
      * Whether a offset exists
      * @link http://php.net/manual/en/arrayaccess.offsetexists.php
