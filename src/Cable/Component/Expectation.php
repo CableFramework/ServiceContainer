@@ -2,6 +2,13 @@
 namespace Cable\Container;
 
 
+use Cable\Container\Definition\AbstractDefinition;
+use Cable\Container\Resolver\ResolverException;
+
+/**
+ * Class Expectation
+ * @package Cable\Container
+ */
 class Expectation
 {
 
@@ -26,7 +33,7 @@ class Expectation
     }
 
     /**
-     * @param Container $container
+     * @param ContainerInterface $container
      * @return $this
      */
     public function setContainer(ContainerInterface $container){
@@ -37,7 +44,8 @@ class Expectation
 
     /**
      * @param callable $callback
-     * @return Container
+     * @return AbstractDefinition
+     * @throws ResolverException
      */
     public function add($callback)
     {
