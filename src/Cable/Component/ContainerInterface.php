@@ -46,4 +46,11 @@ interface ContainerInterface
      * @return MethodDefiniton
      */
     public function addMethod($class, $method);
+
+    /**
+     * @param string $name
+     * @param mixed $instance
+     * @return Expectation
+     */
+    public function expect($name, $instance);
 }
