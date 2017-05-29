@@ -2,6 +2,7 @@
 
 namespace Cable\Container\Resolver;
 
+use Cable\Container\Resolver\Argument\ArgumentException;
 use Cable\Container\Resolver\Argument\ParameterResolver;
 
 class MethodResolver extends Resolver
@@ -25,8 +26,9 @@ class MethodResolver extends Resolver
     /**
      *  resolves the instance
      *
-     * @param array $args
      * @throws \ReflectionException
+     * @throws ResolverException
+     * @throws ArgumentException
      * @return mixed
      */
     public function resolve()
@@ -52,8 +54,6 @@ class MethodResolver extends Resolver
             $class,
             $parameters
         );
-
-        return $method->resolve();
     }
 
 

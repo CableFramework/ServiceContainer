@@ -53,4 +53,3 @@ class ProviderRepository
         return $this;
     }
 }
-

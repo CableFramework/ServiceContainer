@@ -236,6 +236,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     /**
      * @param string $alias
+     * @param array $args
      * @throws NotFoundException
      * @throws ResolverException
      * @throws ExpectationException
@@ -350,8 +351,8 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param $class
-     * @param $method
+     * @param string|object $class
+     * @param string $method
      * @throws ResolverException
      * @return MethodDefiniton
      */

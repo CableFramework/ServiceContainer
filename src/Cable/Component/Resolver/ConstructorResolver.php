@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: My
- * Date: 05/27/2017
- * Time: 22:45
- */
-
 namespace Cable\Container\Resolver;
 
 

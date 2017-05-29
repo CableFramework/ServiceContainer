@@ -3,8 +3,6 @@
 namespace Cable\Container\Definition;
 
 
-use Cable\Container\Resolver\Resolver;
-
 abstract class AbstractDefinition
 {
 
