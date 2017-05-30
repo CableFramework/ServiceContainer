@@ -8,6 +8,8 @@ namespace Cable\Container;
  */
 class Factory
 {
+
+
     /**
      * create a new container instance
      *
@@ -16,6 +18,8 @@ class Factory
      */
     public static function create(ProviderRepository $providerRepository = null)
     {
+
+
         return new Container(
             new BoundManager(),
             new MethodManager(),
