@@ -460,7 +460,7 @@ class Container implements ContainerInterface, \ArrayAccess
         $methodResolver = new MethodResolver(
             $class,
             $method,
-            $selectedMethod
+            $selectedMethod->getArgs()
         );
 
         $methodResolver->setContainer($this);
