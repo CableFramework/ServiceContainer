@@ -18,6 +18,9 @@ class Container implements ContainerInterface, \ArrayAccess
 {
 
 
+    const SHARED = 'shared';
+    const NOT_SHARED = 'not-shared';
+
     /**
      * @var array
      */
@@ -96,7 +99,7 @@ class Container implements ContainerInterface, \ArrayAccess
             $provider = new  $provider;
         }
 
-        if ( ! $provider instanceof ServiceProvider) {
+        if (!$provider instanceof ServiceProvider) {
             throw new ProviderException(
                 sprintf(
                     '%s provider is not as expected',
@@ -215,7 +218,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function prepareResolver($type, $callback, AbstractDefinition $definition)
     {
-        if ( ! isset($this->resolvers[$type])) {
+        if (!isset($this->resolvers[$type])) {
             throw new ResolverException(
                 sprintf(
                     '%s type of resolver is not defined',
@@ -244,11 +247,14 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function resolve($alias, array $args = [])
     {
+        // determine the alias already resolved before or not.
         if ($this->hasResolvedBefore($alias)) {
+
+            // we resolved that before, let's reuse it.
             return $this->getAlreadyResolved($alias);
         }
 
-
+        // we determine we added this before, if we didn't we add it and resolve that
         if (false === $this->has($alias)) {
             $this->add(
                 $alias,
@@ -259,36 +265,71 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        $definition = isset($this->bond[$alias]) ?
-            $this->bond[$alias] :
-            static::$shared[$alias];
+        list($shared, $definition) =
+            $this->findDefinition($alias);
 
-        if ( ! empty($args)) {
+        // if we add new args, we'll set them into definition
+        if (!empty($args)) {
             $definition->withArgs($args);
         }
 
-
+        // we'll find our resolver
         $resolver = $this->determineResolver($definition);
 
+        // determine resolved instance is as we expected or not
         $resolved = $this->checkExpectation(
             $alias,
             $resolver->resolve()
         );
 
-        $this->saveResolved($alias, $resolved);
+
+        // we resolved the definition, now we will add into resolvedBond or sharedResolved
+        // and we will reuse they when we want to resolve them
+        $this->saveResolved($shared, $alias, $resolved);
+
+        // we already resolve and saved it. We don't need this definition anymore.
+        // so we will remove it.
+        // this will save memory
+        $this->removeResolved($shared, $alias);
 
         return $resolved;
+    }
+
+    /**
+     * @param string $alias
+     * @return array
+     */
+    private function findDefinition($alias)
+    {
+        $shared = isset($this->bond[$alias]) ?
+            self::NOT_SHARED :
+            self::SHARED;
+
+        return array(
+            $shared,
+            $shared === self::SHARED ?
+                static::$shared[$alias] :
+                $this->bond[$alias]
+        );
+    }
+
+    private function removeResolved($shared, $alias)
+    {
+        if ($shared === self::SHARED) {
+            unset(static::$shared[$alias]);
+        } else {
+            unset($this->bond[$alias]);
+        }
     }
 
     /**
      * @param $alias
      * @param $resolved
      */
-    private function saveResolved($alias, $resolved)
+    private function saveResolved($shared, $alias, $resolved)
     {
-        $type = isset($this->bond[$alias]) ? 'not-shared' : 'shared';
 
-        if ($type === 'shared') {
+        if ($shared === static::SHARED) {
             static::$sharedResolved[$alias] = $resolved;
         } else {
             $this->resolved[$alias] = $resolved;
@@ -303,11 +344,11 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function checkExpectation($alias, $instance)
     {
-        if ( ! isset($this->expected[$alias])) {
+        if (!isset($this->expected[$alias])) {
             return $instance;
         }
 
-        if ( ! $instance instanceof $this->expected[$alias]) {
+        if (!$instance instanceof $this->expected[$alias]) {
             throw new ExpectationException(
                 sprintf(
                     'in %s alias we were expecting %s, %s returned',
@@ -383,7 +424,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromBond($alias)
     {
-        if ( ! isset($this->bond[$alias])) {
+        if (!isset($this->bond[$alias])) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -407,7 +448,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromShare($alias)
     {
-        if ( ! isset(static::$shared[$alias])) {
+        if (!isset(static::$shared[$alias])) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -435,13 +476,13 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function method($alias, $method, array $args = [])
     {
-        if ( ! $this->has($alias)) {
+        if (!$this->has($alias)) {
             $this->add($alias, $alias);
         }
 
         $class = $this->getBond($alias);
 
-        if ( ! $class->hasMethod($method)) {
+        if (!$class->hasMethod($method)) {
             throw new NotFoundException(
                 sprintf(
                     '%s method not found in %s alias',
@@ -453,7 +494,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         $selectedMethod = $class->getMethod($method);
 
-        if ( ! empty($args)) {
+        if (!empty($args)) {
             $selectedMethod->withArgs($args);
         }
 
