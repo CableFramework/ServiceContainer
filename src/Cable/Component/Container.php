@@ -66,7 +66,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     public function __construct(BoundManager $boundManager,
                                 MethodManager $methodManager,
-                                ProviderRepository $providerRepository
+                                ProviderRepository $providerRepository = null
     )
     {
         $this->boundManager = $boundManager;
