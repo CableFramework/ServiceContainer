@@ -8,12 +8,6 @@ namespace Cable\Container\Definition;
 class ObjectDefinition extends AbstractDefinition
 {
 
-
-    /**
-     * @var array
-     */
-    protected $methods;
-
     /**
      * @param string $name
      * @return MethodDefiniton

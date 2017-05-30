@@ -5,6 +5,7 @@ namespace Cable\Container;
 use Cable\Container\Definition\AbstractDefinition;
 use Cable\Container\Definition\MethodDefiniton;
 use Cable\Container\Definition\ObjectDefinition;
+use Cable\Container\Resolver\Argument\ArgumentException;
 use Cable\Container\Resolver\MethodResolver;
 use Cable\Container\Resolver\ResolverException;
 
@@ -21,22 +22,11 @@ class Container implements ContainerInterface, \ArrayAccess
     const SHARED = 'shared';
     const NOT_SHARED = 'not-shared';
 
-    /**
-     * @var array
-     */
-    private static $shared;
-
 
     /**
      * @var array
      */
     private $providers;
-
-
-    /**
-     * @var array
-     */
-    private $bond;
 
 
     /**
@@ -62,6 +52,17 @@ class Container implements ContainerInterface, \ArrayAccess
      * @var array
      */
     private $expected;
+
+    /**
+     * @var MethodManager
+     */
+    private $methodManager;
+
+
+    /**
+     * @var BondManager
+     */
+    private $bondManager;
 
     /**
      * Container constructor.
@@ -129,14 +130,19 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function add($alias, $callback, $share = false)
     {
+        $alias = $this->getClassName($alias);
+
         $definition = $this->resolveDefinition(
             $callback
         );
 
         if ($share === true) {
-            static::$shared[$alias] = $definition;
+            BondManager::addShare($alias, $callback);
         } else {
-            $this->bond[$alias] = $definition;
+            $this->bondManager->addBond(
+                $alias,
+                $definition
+            );
         }
 
 
@@ -255,7 +261,7 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         // we determine we added this before, if we didn't we add it and resolve that
-        if (false === $this->has($alias)) {
+        if (false === $this->bondManager->has($alias)) {
             $this->add(
                 $alias,
                 $alias
@@ -266,7 +272,8 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
         list($shared, $definition) =
-            $this->findDefinition($alias);
+            $this->bondManager
+                ->findDefinition($alias);
 
         // if we add new args, we'll set them into definition
         if (!empty($args)) {
@@ -295,23 +302,6 @@ class Container implements ContainerInterface, \ArrayAccess
         return $resolved;
     }
 
-    /**
-     * @param string $alias
-     * @return array
-     */
-    private function findDefinition($alias)
-    {
-        $shared = isset($this->bond[$alias]) ?
-            self::NOT_SHARED :
-            self::SHARED;
-
-        return array(
-            $shared,
-            $shared === self::SHARED ?
-                static::$shared[$alias] :
-                $this->bond[$alias]
-        );
-    }
 
     /**
      * @param string $shared
@@ -320,9 +310,9 @@ class Container implements ContainerInterface, \ArrayAccess
     private function removeResolved($shared, $alias)
     {
         if ($shared === self::SHARED) {
-            unset(static::$shared[$alias]);
+           BondManager::deleteShared($alias);
         } else {
-            unset($this->bond[$alias]);
+            $this->bondManager->deleteBond($alias);
         }
     }
 
@@ -387,15 +377,6 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param string $alias
-     * @return bool
-     */
-    public function has($alias)
-    {
-        return isset($this->bond[$alias]) || isset(static::$shared[$alias]);
-    }
-
-    /**
      * @param string|object $class
      * @param string $method
      * @throws ResolverException
@@ -403,7 +384,9 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function addMethod($class, $method)
     {
-        return $this->add($class, $class)->withMethod($method);
+        return $this->methodManager->addMethod(
+            $class, $method
+        );
     }
 
     /**
@@ -437,9 +420,7 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
-        unset(
-            $this->bond[$alias]
-        );
+       $this->bondManager->deleteBond($alias);
 
         return $this;
     }
@@ -452,7 +433,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromShare($alias)
     {
-        if (!isset(static::$shared[$alias])) {
+        if (!BondManager::hasShare($alias)) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -461,13 +442,23 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
-        unset(
-            static::$shared[$alias]
-        );
+        BondManager::deleteShared($alias);
 
         return $this;
     }
 
+    /**
+     * @param string|object $class
+     * @return string
+     */
+    private function getClassName($class)
+    {
+        if (is_object($class)) {
+            return get_class($class);
+        }
+
+        return $class;
+    }
 
     /**
      * @param string $alias the name, instance or alias of class
@@ -475,39 +466,42 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param array $args the args will be passed in to resolver, give empty if you already passed them
      * @return mixed
      * @throws NotFoundException
-     * @throw ResolverException
+     * @throws ResolverException
      * @throws \ReflectionException
+     * @throws ArgumentException
      */
     public function method($alias, $method, array $args = [])
     {
+        $alias = $this->getClassName($alias);
+
         if (!$this->has($alias)) {
             $this->add($alias, $alias);
         }
 
-        $class = $this->getBond($alias);
+        // if this method didnt add before, we'll add it and resolve it.
+        if (!$this->methodManager->hasMethod($alias, $method)) {
+            $this->methodManager->addMethod($alias, $method)
+                ->withArgs($args);
 
-        if (!$class->hasMethod($method)) {
-            throw new NotFoundException(
-                sprintf(
-                    '%s method not found in %s alias',
-                    $method,
-                    $alias
-                )
-            );
+            return $this->method($alias, $method);
         }
 
-        $selectedMethod = $class->getMethod($method);
+        // get the method definition
+        $selectedMethod = $this->methodManager->getMethod($alias, $method);
 
+        // if args not empty we'll set over predefined args
         if (!empty($args)) {
             $selectedMethod->withArgs($args);
         }
 
+        // create a new method resolver
         $methodResolver = new MethodResolver(
-            $class,
+            $this->getBond($alias),
             $method,
             $selectedMethod->getArgs()
         );
 
+        // set container into resolver
         $methodResolver->setContainer($this);
 
         return $methodResolver->resolve();
