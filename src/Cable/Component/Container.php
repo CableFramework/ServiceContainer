@@ -60,17 +60,18 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
-     * @var BondManager
+     * @var BoundManager
      */
-    private $bondManager;
+    private $boundManager;
 
-    /**
-     * Container constructor.
-     * @param ProviderRepository $repository
-     */
-    public function __construct(ProviderRepository $repository = null)
+    public function __construct(BoundManager $boundManager,
+                                MethodManager $methodManager,
+                                ProviderRepository $providerRepository
+    )
     {
-        $this->providers = $repository;
+        $this->boundManager = $boundManager;
+        $this->methodManager = $methodManager;
+        $this->providers = $providerRepository;
 
         if (null !== $this->providers) {
             $this->handleProviders();
@@ -137,9 +138,9 @@ class Container implements ContainerInterface, \ArrayAccess
         );
 
         if ($share === true) {
-            BondManager::addShare($alias, $callback);
+            BoundManager::addShare($alias, $callback);
         } else {
-            $this->bondManager->addBond(
+            $this->boundManager->addBond(
                 $alias,
                 $definition
             );
@@ -151,7 +152,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     /**
      * @param mixed $callback
-     * @return Definition\AbstractDefinition
+     * @return AbstractDefinition
      */
     public function resolveDefinition($callback)
     {
@@ -261,7 +262,7 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         // we determine we added this before, if we didn't we add it and resolve that
-        if (false === $this->bondManager->has($alias)) {
+        if (false === $this->boundManager->has($alias)) {
             $this->add(
                 $alias,
                 $alias
@@ -272,7 +273,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
         list($shared, $definition) =
-            $this->bondManager
+            $this->boundManager
                 ->findDefinition($alias);
 
         // if we add new args, we'll set them into definition
@@ -310,9 +311,9 @@ class Container implements ContainerInterface, \ArrayAccess
     private function removeResolved($shared, $alias)
     {
         if ($shared === self::SHARED) {
-           BondManager::deleteShared($alias);
+            BoundManager::deleteShared($alias);
         } else {
-            $this->bondManager->deleteBond($alias);
+            $this->boundManager->deleteBond($alias);
         }
     }
 
@@ -420,7 +421,7 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
-       $this->bondManager->deleteBond($alias);
+        $this->boundManager->deleteBond($alias);
 
         return $this;
     }
@@ -433,7 +434,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromShare($alias)
     {
-        if (!BondManager::hasShare($alias)) {
+        if (!BoundManager::hasShare($alias)) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -442,7 +443,7 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
-        BondManager::deleteShared($alias);
+        BoundManager::deleteShared($alias);
 
         return $this;
     }

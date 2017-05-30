@@ -3,7 +3,7 @@
 namespace Cable\Container;
 
 
-class BondManager
+class BoundManager
 {
 
     /**
