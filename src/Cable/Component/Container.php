@@ -313,6 +313,10 @@ class Container implements ContainerInterface, \ArrayAccess
         );
     }
 
+    /**
+     * @param string $shared
+     * @param string $alias
+     */
     private function removeResolved($shared, $alias)
     {
         if ($shared === self::SHARED) {
