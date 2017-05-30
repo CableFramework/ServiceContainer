@@ -3,6 +3,7 @@
 namespace Cable\Container\Resolver;
 
 
+use Cable\Container\Container;
 use Cable\Container\ContainerInterface;
 use Cable\Container\Definition\AbstractDefinition;
 
@@ -10,7 +11,7 @@ abstract class Resolver
 {
 
     /**
-     * @var ContainerInterface
+     * @var Container
      */
     protected $container;
 
@@ -29,17 +30,17 @@ abstract class Resolver
 
 
     /**
-     * @param ContainerInterface $container
+     * @param Container $container
      * @return $this
      */
-    public function setContainer(ContainerInterface $container){
+    public function setContainer(Container $container){
         $this->container = $container;
 
         return $this;
     }
 
     /**
-     * @return ContainerInterface
+     * @return Container
      */
     public function getContainer()
     {

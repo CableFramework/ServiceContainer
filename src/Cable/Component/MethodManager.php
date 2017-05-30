@@ -3,6 +3,7 @@
 namespace Cable\Container;
 
 
+use Cable\Container\Definition\MethodDefinition;
 use Cable\Container\Definition\MethodDefiniton;
 
 /**
@@ -24,8 +25,7 @@ class MethodManager
      */
     public function addMethod($class, $method)
     {
-        $definition = new MethodDefiniton($method);
-        $this->methods[$class][$method] = $definition;
+        $this->methods[$class][$method] = $method;
 
         return $this->methods[$class][$method];
     }

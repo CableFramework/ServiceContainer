@@ -32,7 +32,7 @@ class ObjectResolver extends Resolver
 
         $class = new \ReflectionClass($this->class);
 
-        $args = $this->getInstance()->getArgs();
+        $args = $this->getContainer()->getArgumentManager()->getClassArgs($this->class);
 
         /**
          * @var $this->class ReflectionClass

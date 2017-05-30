@@ -3,6 +3,8 @@
 namespace Cable\Container;
 
 use Cable\Container\Definition\AbstractDefinition;
+use Cable\Container\Definition\ClassDefinition;
+use Cable\Container\Definition\MethodDefinition;
 use Cable\Container\Definition\MethodDefiniton;
 use Cable\Container\Definition\ObjectDefinition;
 use Cable\Container\Resolver\Argument\ArgumentException;
@@ -134,43 +136,23 @@ class Container implements ContainerInterface, \ArrayAccess
      * @see Container::share()
      * @example add('mysql', 'MysqlInterface', true);
      * @throws ResolverException
-     * @return AbstractDefinition
+     * @return ClassDefinition
      */
     public function add($alias, $callback, $share = false)
     {
         $alias = $this->getClassName($alias);
-
-        $definition = $this->resolveDefinition(
-            $callback
-        );
 
         if ($share === true) {
             BoundManager::addShare($alias, $callback);
         } else {
             $this->boundManager->addBond(
                 $alias,
-                $definition
+                $callback
             );
         }
 
 
-        return $definition;
-    }
-
-    /**
-     * @param mixed $callback
-     * @return AbstractDefinition
-     */
-    public function resolveDefinition($callback)
-    {
-
-        $definition = new ObjectDefinition();
-
-
-        return $definition->setInstance(
-            $callback
-        );
-
+        return new ClassDefinition($this, $alias);
     }
 
     /**
@@ -193,7 +175,8 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $alias
      * @param mixed $callback
      * @throws ResolverException
-     * @return AbstractDefinition
+     * @return ClassDefinition
+     *
      */
     public function share($alias, $callback)
     {
@@ -205,13 +188,12 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param AbstractDefinition $definition
+     * @param  $callback
      * @return mixed
      * @throws ResolverException
      */
-    private function determineResolver($definition)
+    private function determineResolver($callback)
     {
-        $callback = $definition->getInstance();
         $type = gettype($callback);
 
         if ($callback instanceof \Closure) {
@@ -283,7 +265,9 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // if we add new args, we'll set them into definition
         if (!empty($args)) {
-            $definition->withArgs($args);
+            $this->getArgumentManager()->setClassArgs(
+                $alias, $args
+            );
         }
 
         // we'll find our resolver
@@ -386,13 +370,16 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string|object $class
      * @param string $method
      * @throws ResolverException
-     * @return MethodDefiniton
+     * @return MethodDefinition
      */
     public function addMethod($class, $method)
     {
-        return $this->methodManager->addMethod(
+        $this->methodManager->addMethod(
             $class, $method
         );
+
+
+        return new MethodDefinition($this, $class, $method);
     }
 
     /**
@@ -487,8 +474,12 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // if this method didnt add before, we'll add it and resolve it.
         if (!$this->methodManager->hasMethod($alias, $method)) {
-            $this->methodManager->addMethod($alias, $method)
-                ->withArgs($args);
+            $this->addMethod($alias, $method);
+
+            if (!empty($args)) {
+                $this->getArgumentManager()
+                    ->setMethodArgs($alias, $method, $args);
+            }
 
             return $this->method($alias, $method);
         }
@@ -496,17 +487,14 @@ class Container implements ContainerInterface, \ArrayAccess
         // get the method definition
         $selectedMethod = $this->methodManager->getMethod($alias, $method);
 
-        // if args not empty we'll set over predefined args
-        if (!empty($args)) {
-            $selectedMethod->withArgs($args);
-        }
 
         // create a new method resolver
         $methodResolver = new MethodResolver(
             $this->resolve($alias),
             $method,
-            $selectedMethod->getArgs()
-        );
+            $this->getArgumentManager()
+                ->getMethodArgs($alias, $method)
+    );
 
         // set container into resolver
         $methodResolver->setContainer($this);

@@ -19,6 +19,7 @@ class Factory
         return new Container(
             new BoundManager(),
             new MethodManager(),
+            new ArgumentManager(),
             $providerRepository
         );
     }

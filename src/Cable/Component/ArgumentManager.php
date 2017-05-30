@@ -17,11 +17,36 @@ class ArgumentManager
     private $classArgs;
 
     /**
+     * @return array
+     */
+    public function getClassArgs($class)
+    {
+
+        return isset($this->classArgs[$class]) && !empty($this->classArgs[$class])
+            ? $this->classArgs[$class] :
+            [];
+    }
+
+    /**
+     * @param $class
+     * @param $method
+     * @return mixed
+     */
+    public function getMethodArgs($class, $method)
+    {
+        $alias = $this->prepareMethodName($class, $method);
+
+        return isset($this->methodArgs[$alias]) && !empty(
+        $this->methodArgs[$alias]
+        ) ? $this->methodArgs[$alias] : [];
+    }
+
+    /**
      * @param $class
      * @param array $args
      * @return $this
      */
-    public function setClassArgs($class, array  $args)
+    public function setClassArgs($class, array $args)
     {
         $this->classArgs[$class] = $args;
 
@@ -34,9 +59,9 @@ class ArgumentManager
      * @param array $args
      * @return $this
      */
-    public function setMethodArgs($class, $method,array $args)
+    public function setMethodArgs($class, $method, array $args)
     {
-        $this->methodArgs[$this->prepareMethodName($class, $method)] =$args;
+        $this->methodArgs[$this->prepareMethodName($class, $method)] = $args;
 
         return $this;
     }
@@ -46,7 +71,8 @@ class ArgumentManager
      * @param string $method
      * @return string
      */
-    public function prepareMethodName($class, $method){
-        return $class.'.'.$method;
+    public function prepareMethodName($class, $method)
+    {
+        return $class . '.' . $method;
     }
 }
