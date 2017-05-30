@@ -2,8 +2,11 @@
 
 namespace Cable\Container\Resolver\Argument;
 
+use Cable\Container\ExpectationException;
+use Cable\Container\NotFoundException;
 use Cable\Container\Resolver\ClassAwareTrait;
 use Cable\Container\Resolver\Resolver;
+use Cable\Container\Resolver\ResolverException;
 
 class ParameterResolver extends Resolver
 {
@@ -26,17 +29,12 @@ class ParameterResolver extends Resolver
     }
 
     /**
-     * @return \ReflectionParameter[]
-     */
-    public function getInstance()
-    {
-        return parent::getInstance();
-    }
-
-    /**
      *  resolves the instance
      *
      * @throws ArgumentException
+     * @throws ExpectationException
+     * @throws ResolverException
+     * @throws NotFoundException
      * @return array
      */
     public function resolve()
@@ -55,6 +53,9 @@ class ParameterResolver extends Resolver
     /**
      * @param \ReflectionParameter $parameter
      * @throws ArgumentException
+     * @throws ExpectationException
+     * @throws ResolverException
+     * @throws NotFoundException
      * @return null
      */
     private function resolveParameter(\ReflectionParameter $parameter)

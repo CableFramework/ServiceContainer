@@ -64,13 +64,20 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private $boundManager;
 
+    /**
+     * @var ArgumentManager
+     */
+    private $argumentManager;
+
     public function __construct(BoundManager $boundManager,
                                 MethodManager $methodManager,
+                                ArgumentManager $argumentManager,
                                 ProviderRepository $providerRepository = null
     )
     {
         $this->boundManager = $boundManager;
         $this->methodManager = $methodManager;
+        $this->argumentManager = $argumentManager;
         $this->providers = $providerRepository;
 
         if (null !== $this->providers) {
@@ -212,18 +219,17 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        return $this->prepareResolver($type, $callback, $definition);
+        return $this->prepareResolver($type, $callback);
     }
 
 
     /**
      * @param string $type
      * @param mixed $callback
-     * @param AbstractDefinition $definition
      * @return mixed
      * @throws ResolverException
      */
-    private function prepareResolver($type, $callback, AbstractDefinition $definition)
+    private function prepareResolver($type, $callback)
     {
         if (!isset($this->resolvers[$type])) {
             throw new ResolverException(
@@ -237,7 +243,6 @@ class Container implements ContainerInterface, \ArrayAccess
         $resolver = $this->resolvers[$type];
 
         $resolver = (new $resolver($callback))
-            ->setInstance($definition)
             ->setContainer($this);
 
         return $resolver;
@@ -469,13 +474,14 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws NotFoundException
      * @throws ResolverException
      * @throws \ReflectionException
+     * @throws ExpectationException
      * @throws ArgumentException
      */
     public function method($alias, $method, array $args = [])
     {
         $alias = $this->getClassName($alias);
 
-        if (!$this->has($alias)) {
+        if (!$this->boundManager->has($alias)) {
             $this->add($alias, $alias);
         }
 
@@ -497,7 +503,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // create a new method resolver
         $methodResolver = new MethodResolver(
-            $this->getBond($alias),
+            $this->resolve($alias),
             $method,
             $selectedMethod->getArgs()
         );
@@ -508,14 +514,6 @@ class Container implements ContainerInterface, \ArrayAccess
         return $methodResolver->resolve();
     }
 
-    /**
-     * @param $alias
-     * @return ObjectDefinition
-     */
-    public function getBond($alias)
-    {
-        return $this->bond[$alias];
-    }
 
     /**
      * Whether a offset exists
@@ -607,4 +605,59 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         return $this->has($name);
     }
+
+    /**
+     * @return MethodManager
+     */
+    public function getMethodManager()
+    {
+        return $this->methodManager;
+    }
+
+    /**
+     * @param MethodManager $methodManager
+     * @return Container
+     */
+    public function setMethodManager($methodManager)
+    {
+        $this->methodManager = $methodManager;
+        return $this;
+    }
+
+    /**
+     * @return BoundManager
+     */
+    public function getBoundManager()
+    {
+        return $this->boundManager;
+    }
+
+    /**
+     * @param BoundManager $boundManager
+     * @return Container
+     */
+    public function setBoundManager($boundManager)
+    {
+        $this->boundManager = $boundManager;
+        return $this;
+    }
+
+    /**
+     * @return ArgumentManager
+     */
+    public function getArgumentManager()
+    {
+        return $this->argumentManager;
+    }
+
+    /**
+     * @param ArgumentManager $argumentManager
+     * @return Container
+     */
+    public function setArgumentManager($argumentManager)
+    {
+        $this->argumentManager = $argumentManager;
+        return $this;
+    }
+
 }

@@ -24,12 +24,12 @@ class BoundManager
     public function findDefinition($alias)
     {
         $shared = isset($this->bond[$alias]) ?
-            self::NOT_SHARED :
-            self::SHARED;
+            Container::NOT_SHARED :
+            Container::SHARED;
 
         return array(
             $shared,
-            $shared === self::SHARED ?
+            $shared === Container::SHARED ?
                 static::$shared[$alias] :
                 $this->bond[$alias]
         );
@@ -58,6 +58,15 @@ class BoundManager
 
 
     /**
+     * @param $alias
+     * @return ObjectDefinition
+     */
+    public function getBond($alias)
+    {
+        return $this->bond[$alias];
+    }
+
+    /**
      * @param string $alias
      * @return bool
      */
@@ -70,7 +79,8 @@ class BoundManager
      * @param string $alias
      * @return bool
      */
-    public static function hasShare($alias){
+    public static function hasShare($alias)
+    {
         return isset(static::$shared[$alias]);
     }
 

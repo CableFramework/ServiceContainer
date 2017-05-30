@@ -2,6 +2,7 @@
 
 namespace Cable\Container\Resolver;
 
+use Cable\Container\Definition\ObjectDefinition;
 use Cable\Container\Resolver\Argument\ArgumentException;
 use Cable\Container\Resolver\Argument\ParameterResolver;
 
@@ -33,7 +34,7 @@ class MethodResolver extends Resolver
      */
     public function resolve()
     {
-        $class = $this->getObjectInstance($this->class->getInstance());
+        $class = $this->getObjectInstance($this->class);
 
         $method = new \ReflectionMethod(
             $class, $this->name
@@ -43,8 +44,6 @@ class MethodResolver extends Resolver
 
         $parameterResolver->setContainer(
             $this->getContainer()
-        )->setInstance(
-            $this->class
         );
 
         $parameters = $parameterResolver->resolve();
@@ -70,13 +69,10 @@ class MethodResolver extends Resolver
                 return $class;
         }
 
-
-
         $objectResolver = new ObjectResolver($class);
 
-        $objectResolver->setInstance(
-            $this->class
-        )->setContainer($this->getContainer());
+        $objectResolver
+            ->setContainer($this->getContainer());
 
         return $objectResolver->resolve();
     }

@@ -26,7 +26,7 @@ class ObjectResolver extends Resolver
     public function resolve()
     {
 
-        if (is_object($instance = $this->getInstance()->getInstance())) {
+        if (is_object($instance = $this->class)) {
             return $instance;
         }
 
