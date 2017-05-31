@@ -60,6 +60,24 @@ class ParameterResolver extends Resolver
      */
     private function resolveParameter(\ReflectionParameter $parameter)
     {
+        if (!isset($this->args[$name = $parameter->getName()])) {
+            $this->resolveArgument($parameter);
+        }
+
+
+        return $this->args[$name];
+
+    }
+
+    /**
+     * @param \ReflectionParameter $parameter
+     * @throws ExpectationException
+     * @throws ArgumentException
+     * @throws NotFoundException
+     * @throws ResolverException
+     * @return mixed
+     */
+    private function resolveArgument(\ReflectionParameter $parameter){
         if (null !== ($class = $this->isClass($parameter))) {
             return $this->getContainer()
                 ->resolve(
@@ -67,25 +85,10 @@ class ParameterResolver extends Resolver
                 );
         }
 
-        return $this->resolveParamWithArgs($parameter);
-    }
+        // if argument doesnot support null, we'll throw an exception
+        $this->throwExceptionIsNotSupportedNull($parameter);
 
-
-    /**
-     * @param \ReflectionParameter $parameter
-     * @throws ArgumentException
-     * @return null
-     */
-    private function resolveParamWithArgs(\ReflectionParameter $parameter)
-    {
-        if ( ! isset($this->args[$parameter->getName()])) {
-            $this->throwExceptionIsNotSupportedNull($parameter);
-
-
-            return null;
-        }
-
-        return $this->args[$parameter->getName()];
+        return null;
     }
 
     /**
