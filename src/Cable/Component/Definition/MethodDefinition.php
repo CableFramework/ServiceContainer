@@ -5,7 +5,7 @@ namespace Cable\Container\Definition;
 
 use Cable\Container\Container;
 
-class MethodDefinition
+class MethodDefinition extends Definition
 {
 
     /**
@@ -18,10 +18,6 @@ class MethodDefinition
      */
     private $class;
 
-    /**
-     * @var string
-     */
-    private $name;
     /**
      * ClassDefinition constructor.
      * @param Container $container
@@ -49,4 +45,6 @@ class MethodDefinition
 
         return $this->container;
     }
+
+
 }

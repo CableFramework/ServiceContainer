@@ -6,7 +6,7 @@ namespace Cable\Container\Definition;
 use Cable\Container\Container;
 use Cable\Container\ContainerInterface;
 
-class ClassDefinition
+class ClassDefinition extends Definition
 {
 
     /**

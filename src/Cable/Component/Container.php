@@ -190,9 +190,10 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param  $callback
      * @return mixed
+     * @param ClassDefinition|MethodDefinition $definition
      * @throws ResolverException
      */
-    private function determineResolver($callback)
+    private function determineResolver($callback, $definition)
     {
         $type = gettype($callback);
 
@@ -201,17 +202,18 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        return $this->prepareResolver($type, $callback);
+        return $this->prepareResolver($type, $callback, $definition);
     }
 
 
     /**
      * @param string $type
      * @param mixed $callback
+     * @param ClassDefinition|MethodDefinition
      * @return mixed
      * @throws ResolverException
      */
-    private function prepareResolver($type, $callback)
+    private function prepareResolver($type, $callback, $definition)
     {
         if (!isset($this->resolvers[$type])) {
             throw new ResolverException(
@@ -225,7 +227,8 @@ class Container implements ContainerInterface, \ArrayAccess
         $resolver = $this->resolvers[$type];
 
         $resolver = (new $resolver($callback))
-            ->setContainer($this);
+            ->setContainer($this)
+            ->setInstance($definition);
 
         return $resolver;
     }

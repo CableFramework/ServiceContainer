@@ -6,6 +6,8 @@ namespace Cable\Container\Resolver;
 use Cable\Container\Container;
 use Cable\Container\ContainerInterface;
 use Cable\Container\Definition\AbstractDefinition;
+use Cable\Container\Definition\ClassDefinition;
+use Cable\Container\Definition\MethodDefinition;
 
 abstract class Resolver
 {
@@ -48,7 +50,7 @@ abstract class Resolver
     }
 
     /**
-     * @return AbstractDefinition
+     * @return ClassDefinition|MethodDefinition
      */
     public function getInstance()
     {
