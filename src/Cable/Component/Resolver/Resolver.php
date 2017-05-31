@@ -50,7 +50,7 @@ abstract class Resolver
     }
 
     /**
-     * @return ClassDefinition|MethodDefinition
+     * @return string
      */
     public function getInstance()
     {
@@ -58,10 +58,10 @@ abstract class Resolver
     }
 
     /**
-     * @param AbstractDefinition $instance
+     * @param string $instance
      * @return Resolver
      */
-    public function setInstance(AbstractDefinition $instance = null)
+    public function setInstance($instance = null)
     {
         $this->instance = $instance;
 
