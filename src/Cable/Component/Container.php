@@ -38,14 +38,6 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private static $sharedResolved;
 
-    /**
-     * @var array
-     */
-    private $resolvers = [
-        'closure' => 'Cable\Container\Resolver\ClosureResolver',
-        'object' => 'Cable\Container\Resolver\ObjectResolver',
-        'string' => 'Cable\Container\Resolver\ObjectResolver',
-    ];
 
     /**
      * @var array
