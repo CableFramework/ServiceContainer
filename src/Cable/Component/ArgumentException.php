@@ -1,6 +1,6 @@
 <?php
 
-namespace Cable\Container\Resolver\Argument;
+namespace Cable\Container;
 
 
 class ArgumentException extends \Exception

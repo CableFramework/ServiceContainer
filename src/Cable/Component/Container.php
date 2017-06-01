@@ -7,9 +7,6 @@ use Cable\Container\Definition\ClassDefinition;
 use Cable\Container\Definition\MethodDefinition;
 use Cable\Container\Definition\MethodDefiniton;
 use Cable\Container\Definition\ObjectDefinition;
-use Cable\Container\Resolver\Argument\ArgumentException;
-use Cable\Container\Resolver\MethodResolver;
-use Cable\Container\Resolver\ResolverException;
 
 /**
  * Created by PhpStorm.
@@ -188,54 +185,10 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param  $callback
-     * @return mixed
-     * @throws ResolverException
-     */
-    private function determineResolver($callback)
-    {
-        $type = gettype($callback);
-
-        if ($callback instanceof \Closure) {
-            $type = 'closure';
-        }
-
-
-        return $this->prepareResolver($type, $callback);
-    }
-
-
-    /**
-     * @param string $type
-     * @param mixed $callback
-     * @return mixed
-     * @throws ResolverException
-     */
-    private function prepareResolver($type, $callback)
-    {
-        if (!isset($this->resolvers[$type])) {
-            throw new ResolverException(
-                sprintf(
-                    '%s type of resolver is not defined',
-                    $type
-                )
-            );
-        }
-
-        $resolver = $this->resolvers[$type];
-
-        $resolver = (new $resolver($callback))
-            ->setContainer($this);
-
-        return $resolver;
-    }
-
-
-    /**
      * @param string $alias
      * @param array $args
      * @throws NotFoundException
-     * @throws ResolverException
+     * @throws \ReflectionException
      * @throws ExpectationException
      * @return mixed
      */
@@ -270,18 +223,10 @@ class Container implements ContainerInterface, \ArrayAccess
             );
         }
 
-        // we'll find our resolver
-        $resolver = $this->determineResolver($definition);
-
-        // set alias into instance
-        $resolver->setInstance(
-            $alias
-        );
-
         // determine resolved instance is as we expected or not
         $resolved = $this->checkExpectation(
             $alias,
-            $resolver->resolve()
+            $this->resolveObject($definition, $alias)
         );
 
 
@@ -297,6 +242,152 @@ class Container implements ContainerInterface, \ArrayAccess
         return $resolved;
     }
 
+    /**
+     * resolves the instance
+     *
+     * @param object $definition
+     * @param string $alias
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     * @throws ArgumentException
+     * @return mixed
+     */
+    private function resolveObject($definition, $alias)
+    {
+        if ($definition instanceof \Closure) {
+            return $this->resolveClosure(
+                $alias,
+                $definition
+            );
+        }
+
+        $class = new \ReflectionClass($definition);
+
+        $constructor = $class->getConstructor();
+
+        $parameters = [];
+
+        if (null !== $constructor) {
+            $parameters = $this->resolveParameters(
+                $constructor->getParameters(),
+                $this->argumentManager->getClassArgs($alias)
+            );
+        }
+
+        return $class->newInstanceArgs($parameters);
+    }
+
+    /**
+     * @param string $alias
+     * @param \Closure $closure
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     * @throws ArgumentException
+     * @return mixed
+     */
+    private function resolveClosure($alias, \Closure $closure)
+    {
+        $reflectionFunction = new \ReflectionFunction($closure);
+
+        $parameters = $this->resolveParameters(
+            $reflectionFunction->getParameters(),
+            $this->argumentManager->getClassArgs($alias)
+        );
+
+        return call_user_func_array($closure, $parameters);
+    }
+
+
+    /**
+     * @param $alias
+     * @param $method
+     * @param $instance
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     * @throws ArgumentException
+     * @param \ReflectionMethod $abstract
+     * @return mixed
+     */
+    private function resolveMethod($alias, $method, $instance, \ReflectionMethod $abstract)
+    {
+        $parameters = $this->resolveParameters(
+            $abstract->getParameters(),
+            $this->getArgumentManager()
+                ->getMethodArgs($alias, $method)
+        );
+
+        return $abstract->invokeArgs($instance, $parameters);
+    }
+
+    /**
+     * @param \ReflectionParameter[] $parameters
+     * @param array $args
+     * @throws ExpectationException
+     * @throws NotFoundException
+     * @throws \ReflectionException
+     * @throws ArgumentException
+     * @return array
+     */
+    private function resolveParameters(array $parameters, array $args)
+    {
+        $bounded = [];
+
+        foreach ($parameters as $parameter) {
+            if (!isset($args[$name = $parameter->getName()])) {
+                $bounded[$parameter->getName()] = $this->resolveArgument($parameter);
+            } else {
+                $bounded[$parameter->getName()] = $args[$parameter->getName()];
+            }
+
+
+        }
+
+        return $bounded;
+    }
+
+    /**
+     * @param \ReflectionParameter $parameter
+     * @throws ExpectationException
+     * @throws ArgumentException
+     * @throws NotFoundException
+     * @throws \ReflectionException
+     * @return mixed
+     */
+    private function resolveArgument(\ReflectionParameter $parameter)
+    {
+        if (null !== ($class = $this->isClass($parameter))) {
+            return $this->resolve(
+                $class->getName()
+            );
+        }
+
+        // if argument doesnot support null, we'll throw an exception
+
+        try{
+            return $parameter->getDefaultValue();
+        }catch (\ReflectionException $exception){
+
+            if ($parameter->allowsNull()) {
+                return null;
+            }
+
+            throw new ArgumentException($exception->getMessage());
+        }
+
+    }
+
+
+    /**
+     * @param \ReflectionParameter $parameter
+     * @return \ReflectionClass
+     */
+    public function isClass(\ReflectionParameter $parameter)
+    {
+        return $parameter->getClass();
+    }
 
     /**
      * @param string $shared
@@ -489,22 +580,13 @@ class Container implements ContainerInterface, \ArrayAccess
             return $this->method($alias, $method);
         }
 
-        // get the method definition
-        $selectedMethod = $this->methodManager->getMethod($alias, $method);
 
-
-        // create a new method resolver
-        $methodResolver = new MethodResolver(
-            $this->resolve($alias),
+        return $this->resolveMethod(
+            $alias,
             $method,
-            $this->getArgumentManager()
-                ->getMethodArgs($alias, $method)
-    );
-
-        // set container into resolver
-        $methodResolver->setContainer($this);
-
-        return $methodResolver->resolve();
+            $instance = $this->resolve($alias),
+            new \ReflectionMethod($instance, $method)
+        );
     }
 
 
