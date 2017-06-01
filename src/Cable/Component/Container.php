@@ -131,14 +131,22 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         $alias = $this->getClassName($alias);
 
-        if ($share === true) {
-            BoundManager::addShare($alias, $callback);
-        } else {
+        if (true === $share) {
+            return $this->share($alias, $callback);
+        }
+
+
+        // if $callback is object we will mark it as resolved,
+        // we dont need to resolve it anymore
+        if (is_object($callback)) {
+            $this->resolved[$alias] = $callback;
+        }else {
             $this->boundManager->addBond(
                 $alias,
                 $callback
             );
         }
+
 
 
         return new ClassDefinition($this, $alias);
@@ -169,11 +177,13 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function share($alias, $callback)
     {
-        return $this->add(
-            $alias,
-            $callback,
-            true
-        );
+        if (is_object($callback)) {
+            static::$sharedResolved[$alias] = $callback;
+        }else{
+            BoundManager::addShare($alias, $callback);
+        }
+
+        return new ClassDefinition($alias, $callback);
     }
 
     /**
@@ -182,10 +192,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws NotFoundException
      * @throws \ReflectionException
      * @throws ExpectationException
+     * @throws ArgumentException
      * @return mixed
      */
     public function resolve($alias, array $args = [])
     {
+
         // determine the alias already resolved before or not.
         if ($this->hasResolvedBefore($alias)) {
 
@@ -583,6 +595,60 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
+     * @return MethodManager
+     */
+    public function getMethodManager()
+    {
+        return $this->methodManager;
+    }
+
+    /**
+     * @param MethodManager $methodManager
+     * @return Container
+     */
+    public function setMethodManager($methodManager)
+    {
+        $this->methodManager = $methodManager;
+        return $this;
+    }
+
+    /**
+     * @return BoundManager
+     */
+    public function getBoundManager()
+    {
+        return $this->boundManager;
+    }
+
+    /**
+     * @param BoundManager $boundManager
+     * @return Container
+     */
+    public function setBoundManager($boundManager)
+    {
+        $this->boundManager = $boundManager;
+        return $this;
+    }
+
+    /**
+     * @return ArgumentManager
+     */
+    public function getArgumentManager()
+    {
+        return $this->argumentManager;
+    }
+
+    /**
+     * @param ArgumentManager $argumentManager
+     * @return Container
+     */
+    public function setArgumentManager($argumentManager)
+    {
+        $this->argumentManager = $argumentManager;
+        return $this;
+    }
+
+    /**
      * Whether a offset exists
      * @link http://php.net/manual/en/arrayaccess.offsetexists.php
      * @param mixed $offset <p>
@@ -673,58 +739,5 @@ class Container implements ContainerInterface, \ArrayAccess
         return $this->has($name);
     }
 
-    /**
-     * @return MethodManager
-     */
-    public function getMethodManager()
-    {
-        return $this->methodManager;
-    }
-
-    /**
-     * @param MethodManager $methodManager
-     * @return Container
-     */
-    public function setMethodManager($methodManager)
-    {
-        $this->methodManager = $methodManager;
-        return $this;
-    }
-
-    /**
-     * @return BoundManager
-     */
-    public function getBoundManager()
-    {
-        return $this->boundManager;
-    }
-
-    /**
-     * @param BoundManager $boundManager
-     * @return Container
-     */
-    public function setBoundManager($boundManager)
-    {
-        $this->boundManager = $boundManager;
-        return $this;
-    }
-
-    /**
-     * @return ArgumentManager
-     */
-    public function getArgumentManager()
-    {
-        return $this->argumentManager;
-    }
-
-    /**
-     * @param ArgumentManager $argumentManager
-     * @return Container
-     */
-    public function setArgumentManager($argumentManager)
-    {
-        $this->argumentManager = $argumentManager;
-        return $this;
-    }
 
 }
