@@ -240,7 +240,7 @@ class Container implements ContainerInterface, \ArrayAccess
         // we already resolve and saved it. We don't need this definition anymore.
         // so we will remove it.
         // this will save memory
-        $this->removeResolved($shared, $alias);
+        $this->removeResolvedFromBound($shared, $alias);
 
         return $resolved;
     }
@@ -266,6 +266,19 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         $class = new \ReflectionClass($definition);
+
+
+        // the given class if is not instantiable throw an exception
+        // that happens when you try resolve an interface or abstract class
+        // without saving an alias on that class before
+        if (false === $class->isInstantiable()) {
+            throw new \ReflectionException(
+                sprintf(
+                    '%s class in not instantiable, probably an interface or abstract',
+                    $class->getName()
+                )
+            );
+        }
 
         $constructor = $class->getConstructor();
 
@@ -419,7 +432,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $shared
      * @param string $alias
      */
-    private function removeResolved($shared, $alias)
+    private function removeResolvedFromBound($shared, $alias)
     {
         if ($shared === self::SHARED) {
             BoundManager::deleteShared($alias);
