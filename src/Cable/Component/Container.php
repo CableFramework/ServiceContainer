@@ -140,13 +140,12 @@ class Container implements ContainerInterface, \ArrayAccess
         // we dont need to resolve it anymore
         if (is_object($callback)) {
             $this->resolved[$alias] = $callback;
-        }else {
+        } else {
             $this->boundManager->addBond(
                 $alias,
                 $callback
             );
         }
-
 
 
         return new ClassDefinition($this, $alias);
@@ -179,7 +178,7 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         if (is_object($callback)) {
             static::$sharedResolved[$alias] = $callback;
-        }else{
+        } else {
             BoundManager::addShare($alias, $callback);
         }
 
@@ -363,23 +362,46 @@ class Container implements ContainerInterface, \ArrayAccess
     private function resolveArgument(\ReflectionParameter $parameter)
     {
         if (null !== ($class = $this->isClass($parameter))) {
-            return $this->resolve(
-                $class->getName()
-            );
+            try {
+                return $this->resolve($class->getName());
+            } catch (NotFoundException $exception) {
+                return $this->resolveParameterIsOptional($parameter);
+            }
         }
 
         // if argument doesnot support null, we'll throw an exception
 
-        try{
+        try {
             return $parameter->getDefaultValue();
-        }catch (\ReflectionException $exception){
+        } catch (\ReflectionException $exception) {
 
             if ($parameter->allowsNull()) {
                 return null;
             }
 
-            throw new ArgumentException($exception->getMessage());
         }
+
+    }
+
+    /**
+     * @param \ReflectionParameter $parameter
+     * @return mixed|null
+     * @throws ArgumentException
+     */
+    private function resolveParameterIsOptional(\ReflectionParameter $parameter)
+    {
+        if ($parameter->isOptional()) {
+            return $parameter->getDefaultValue();
+        }
+
+        if ($parameter->allowsNull()) {
+            return null;
+        }
+
+        throw new ArgumentException(sprintf(
+            '%s parameter does not have a default value and does not allow null',
+            $parameter->getName()
+        ));
 
     }
 
