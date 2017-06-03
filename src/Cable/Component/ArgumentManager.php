@@ -3,6 +3,8 @@
 namespace Cable\Container;
 
 
+use Cable\Container\Definition\ContextDefinition;
+
 class ArgumentManager
 {
 
@@ -74,5 +76,18 @@ class ArgumentManager
     public function prepareMethodName($class, $method)
     {
         return $class . '.' . $method;
+    }
+
+    /**
+     * @param $alias
+     * @param $argument
+     * @param $callback
+     * @return $this
+     */
+    public function give($alias, $argument, ContextDefinition $callback)
+    {
+        $this->classArgs[$alias][$argument] = $callback;
+
+        return $this;
     }
 }

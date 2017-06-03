@@ -19,19 +19,19 @@ class BoundManager
 
     /**
      * @param string $alias
+     * @param null|bool $shared
      * @return array
      */
-    public function findDefinition($alias)
+    public function findDefinition($alias, $shared = null)
     {
-        $shared = isset($this->bond[$alias]) ?
-            Container::NOT_SHARED :
-            Container::SHARED;
+        if ($shared === true) {
+            return array(Container::SHARED, static::$shared[$alias]);
+        }
+
 
         return array(
-            $shared,
-            $shared === Container::SHARED ?
-                static::$shared[$alias] :
-                $this->bond[$alias]
+            Container::NOT_SHARED,
+            $this->bond[$alias]
         );
     }
 
@@ -102,5 +102,6 @@ class BoundManager
 
         return $this;
     }
+
 
 }

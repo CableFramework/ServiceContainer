@@ -4,6 +4,7 @@ namespace Cable\Container;
 
 use Cable\Container\Definition\AbstractDefinition;
 use Cable\Container\Definition\ClassDefinition;
+use Cable\Container\Definition\ContextDefinition;
 use Cable\Container\Definition\MethodDefinition;
 use Cable\Container\Definition\MethodDefiniton;
 use Cable\Container\Definition\ObjectDefinition;
@@ -60,6 +61,13 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private $argumentManager;
 
+    /**
+     * Container constructor.
+     * @param BoundManager $boundManager
+     * @param MethodManager $methodManager
+     * @param ArgumentManager $argumentManager
+     * @param ProviderRepository|null $providerRepository
+     */
     public function __construct(BoundManager $boundManager,
                                 MethodManager $methodManager,
                                 ArgumentManager $argumentManager,
@@ -186,17 +194,33 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
+     * @param string $alias the name of alias
+     * @return ContextDefinition
+     */
+    public function when($alias)
+    {
+
+        // we create a new context definition instance
+        // and return it, the user will be abel to access needs and having
+        // methods now
+        $contextDefinition = new ContextDefinition($this, $alias);
+
+        return $contextDefinition;
+    }
+
+
+    /**
      * @param string $alias
      * @param array $args
+     * @param bool|null $shared
      * @throws NotFoundException
      * @throws \ReflectionException
      * @throws ExpectationException
      * @throws ArgumentException
      * @return mixed
      */
-    public function resolve($alias, array $args = [])
+    public function resolve($alias, array $args = [], $shared = null)
     {
-
         // determine the alias already resolved before or not.
         if ($this->hasResolvedBefore($alias)) {
 
@@ -206,18 +230,16 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // we determine we added this before, if we didn't we add it and resolve that
         if (false === $this->boundManager->has($alias)) {
-            $this->add(
-                $alias,
-                $alias
-            );
+            $this->add($alias, $alias);
 
             return $this->resolve($alias);
         }
 
 
-        list($shared, $definition) =
-            $this->boundManager
-                ->findDefinition($alias);
+
+        list($shared, $definition) = $this
+            ->boundManager
+            ->findDefinition($alias, $shared);
 
         // if we add new args, we'll set them into definition
         if (!empty($args)) {
@@ -352,10 +374,25 @@ class Container implements ContainerInterface, \ArrayAccess
         $bounded = [];
 
         foreach ($parameters as $parameter) {
-            if (!isset($args[$name = $parameter->getName()])) {
-                $bounded[$parameter->getName()] = $this->resolveArgument($parameter);
+
+            $name = $parameter->getName();
+            $class = $parameter->getClass()->getName();
+
+
+            if (isset($args[$class]) || isset($args[$name])) {
+
+                // we will check the argument is a context or a standart argument
+                $bounded[$name] = $this->resolveContextOrArgument(
+                    isset($args[$class]) ? $args[$class] : $args[$name]
+                );
+
+                continue;
+            }
+
+            if (!isset($args[$name])) {
+                $bounded[$name] = $this->resolveArgument($parameter);
             } else {
-                $bounded[$parameter->getName()] = $args[$parameter->getName()];
+                $bounded[$name] = $args[$name];
             }
 
 
@@ -365,6 +402,55 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
+     * @param $arg
+     * @return bool|mixed
+     */
+    private function resolveContextOrArgument($arg)
+    {
+        // now we are checking the argument is defined as a context or not
+        if (!$arg instanceof ContextDefinition) {
+            return $arg;
+        }
+
+
+        return $this->resolveContext($arg);
+    }
+
+    /**
+     * @param ContextDefinition $contextDefinition
+     * @return bool|mixed
+     */
+    private function resolveContext(ContextDefinition $contextDefinition)
+    {
+
+        $happens = $contextDefinition->happens;
+
+        // we'll determine happens is a closure, if it is we'll resolve it
+        // and give the result the context closure
+        if (null !== $happens && $happens instanceof \Closure) {
+            $happens =  $happens($this);
+
+            return $happens ?
+                $this->resolveContextCallback($contextDefinition->callback, $happens) :
+                false;
+        }
+
+
+        return $this->resolveContextCallback($contextDefinition->callback);
+    }
+
+    /**
+     * @param \Closure $callback
+     * @param null|mixed $happens
+     * @return mixed
+     */
+    private function resolveContextCallback(\Closure $callback, $happens = null)
+    {
+        return $callback($this, $happens);
+    }
+
+    /**
+     *
      * @param \ReflectionParameter $parameter
      * @throws ExpectationException
      * @throws ArgumentException
