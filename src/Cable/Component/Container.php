@@ -167,7 +167,7 @@ class Container implements ContainerInterface, \ArrayAccess
     public function expect($name, $instance)
     {
         if (is_array($instance)) {
-            foreach ($instance as $item){
+            foreach ($instance as $item) {
                 $this->expect($name, $item);
             }
 
@@ -437,7 +437,10 @@ class Container implements ContainerInterface, \ArrayAccess
         if (null !== $happens && $happens instanceof \Closure) {
             $happens = $happens($this);
 
-            return $happens ?
+            if (null === $happens) {
+                $happens = [];
+            }
+            return !empty($happens) ?
                 $this->resolveContextCallback($contextDefinition->callback, $happens) :
                 false;
         }
@@ -451,9 +454,9 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param null|mixed $happens
      * @return mixed
      */
-    private function resolveContextCallback(\Closure $callback, $happens = null)
+    private function resolveContextCallback(\Closure $callback, $happens = [])
     {
-        return $callback($this, $happens);
+        return call_user_func_array($callback, $happens);
     }
 
     /**
@@ -562,7 +565,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         $expecteds = $this->expected[$alias];
 
-        foreach($expecteds as $expected){
+        foreach ($expecteds as $expected) {
 
             if (!$instance instanceof $expected) {
                 throw new ExpectationException(
