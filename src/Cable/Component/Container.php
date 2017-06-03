@@ -97,7 +97,7 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param $provider
+     * @param string|ServiceProvider $provider
      * @return $this
      * @throws ProviderException
      */
@@ -162,11 +162,19 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param string $name
      * @param mixed $instance
-     * @return Expectation
+     * @return Expectation|ContainerInterface
      */
     public function expect($name, $instance)
     {
-        $this->expected[$name] = $instance;
+        if (is_array($instance)) {
+            foreach ($instance as $item){
+                $this->expect($name, $item);
+            }
+
+            return $this;
+        }
+
+        $this->expected[$name][] = $instance;
 
         $expectation = new Expectation(
             $name
@@ -552,15 +560,21 @@ class Container implements ContainerInterface, \ArrayAccess
             return $instance;
         }
 
-        if (!$instance instanceof $this->expected[$alias]) {
-            throw new ExpectationException(
-                sprintf(
-                    'in %s alias we were expecting %s, %s returned',
-                    $alias,
-                    $this->expected[$alias],
-                    get_class($instance)
-                )
-            );
+        $expecteds = $this->expected[$alias];
+
+        foreach($expecteds as $expected){
+
+            if (!$instance instanceof $expected) {
+                throw new ExpectationException(
+                    sprintf(
+                        'in %s alias we were expecting %s, %s returned',
+                        $alias,
+                        $expected,
+                        get_class($instance)
+                    )
+                );
+            }
+
         }
 
         return $instance;

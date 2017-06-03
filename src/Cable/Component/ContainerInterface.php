@@ -50,7 +50,15 @@ interface ContainerInterface
     /**
      * @param string $name
      * @param mixed $instance
-     * @return Expectation
+     * @return Expectation|ContainerInterface
      */
     public function expect($name, $instance);
+
+
+    /**
+     * @param string|ServiceProvider $provider
+     * @return $this
+     * @throws ProviderException
+     */
+    public function addProvider($provider);
 }

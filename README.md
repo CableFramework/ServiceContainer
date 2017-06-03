@@ -69,6 +69,26 @@ $container->expect('test', MyTestInterface::class);
 // container will throw an expectation exception
 
 
+```
 
+##ServiceProviders
+
+```php
+
+class Provider extends ServiceProvider{
+   public function register(){}
+   public function boot(){
+     $this->getContainer()->add('test', Test::class);
+   }
+}
+
+$container = \Cable\Container\Factory::create();
+
+$container->addProvider(Provider::class);
+
+
+// now you can resolve the 'test' service
+
+$test = $container->resolve('test');
 
 ```
