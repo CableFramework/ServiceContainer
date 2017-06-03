@@ -146,7 +146,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // if $callback is object we will mark it as resolved,
         // we dont need to resolve it anymore
-        if (is_object($callback)) {
+        if (is_object($callback) && !$callback instanceof \Closure) {
             $this->resolved[$alias] = $callback;
         } else {
             $this->boundManager->addBond(
@@ -234,7 +234,6 @@ class Container implements ContainerInterface, \ArrayAccess
 
             return $this->resolve($alias);
         }
-
 
 
         list($shared, $definition) = $this
@@ -428,7 +427,7 @@ class Container implements ContainerInterface, \ArrayAccess
         // we'll determine happens is a closure, if it is we'll resolve it
         // and give the result the context closure
         if (null !== $happens && $happens instanceof \Closure) {
-            $happens =  $happens($this);
+            $happens = $happens($this);
 
             return $happens ?
                 $this->resolveContextCallback($contextDefinition->callback, $happens) :
@@ -685,9 +684,9 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws ExpectationException
      * @throws ArgumentException
      */
-    public function method($alias, $method, array $args = [])
+    public function call($instance, $method, array $args = [])
     {
-        $alias = $this->getClassName($alias);
+        $alias = is_object($instance) ? $this->getClassName($instance) : $instance;
 
         if (!$this->boundManager->has($alias)) {
             $this->add($alias, $alias);
@@ -702,14 +701,14 @@ class Container implements ContainerInterface, \ArrayAccess
                     ->setMethodArgs($alias, $method, $args);
             }
 
-            return $this->method($alias, $method);
+            return $this->call($alias, $method);
         }
 
 
         return $this->resolveMethod(
             $alias,
             $method,
-            $instance = $this->resolve($alias),
+            is_object($instance) ? $instance : $this->resolve($alias),
             new \ReflectionMethod($instance, $method)
         );
     }

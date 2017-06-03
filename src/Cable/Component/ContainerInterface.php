@@ -29,7 +29,7 @@ interface ContainerInterface
     public function resolve($alias, array $args = []);
 
     /**
-     * @param string $alias the name, instance or alias of class
+     * @param string $intance the name, instance or alias of class
      * @param string $method the name method
      * @param array $args the args will be passed in to resolver, give empty if you already passed them
      * @return mixed
@@ -37,7 +37,7 @@ interface ContainerInterface
      * @throw ResolverException
      * @throws \ReflectionException
      */
-    public function method($alias, $method, array $args = []);
+    public function call($instance, $method, array $args = []);
 
     /**
      * @param string|object $class the name, instance or alias of class
