@@ -437,9 +437,10 @@ class Container implements ContainerInterface, \ArrayAccess
         if (null !== $happens && $happens instanceof \Closure) {
             $happens = $happens($this);
 
-            if (null === $happens) {
+            if (!$happens) {
                 $happens = [];
             }
+
             return !empty($happens) ?
                 $this->resolveContextCallback($contextDefinition->callback, $happens) :
                 false;
@@ -456,6 +457,8 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function resolveContextCallback(\Closure $callback, $happens = [])
     {
+        $happens[] = $this;
+
         return call_user_func_array($callback, $happens);
     }
 
