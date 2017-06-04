@@ -161,20 +161,21 @@ class Container implements ContainerInterface, \ArrayAccess
             return $this->share($alias, $callback);
         }
 
+        $singleton = false;
 
         // if $callback is object we will mark it as resolved,
         // we dont need to resolve it anymore
         if (is_object($callback) && !$callback instanceof \Closure) {
             $this->resolved[$alias] = $callback;
+
+            // we mark that as a singleton, so we wont resolve it.
+            $singleton = true;
         } else {
-            $this->boundManager->addBond(
-                $alias,
-                $callback
-            );
+            $this->boundManager->addBond($alias, $callback);
         }
 
 
-        return (new ClassDefinition($this, $alias))->setSingleton(false);
+        return (new ClassDefinition($this, $alias))->setSingleton($singleton);
     }
 
     /**
@@ -256,7 +257,7 @@ class Container implements ContainerInterface, \ArrayAccess
             return $this->getAlreadyResolved($alias);
         }
 
-        // we determine we added this before, if we didn't we add it and resolve that
+        // we realized we did not add this before
         if (false === $this->boundManager->has($alias)) {
             $this->add($alias, $alias);
 
@@ -316,6 +317,7 @@ class Container implements ContainerInterface, \ArrayAccess
                 $definition
             );
         }
+
 
         $class = new \ReflectionClass($definition);
 
