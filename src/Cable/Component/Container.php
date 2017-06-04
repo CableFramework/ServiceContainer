@@ -260,7 +260,8 @@ class Container implements ContainerInterface, \ArrayAccess
         if (false === $this->boundManager->has($alias)) {
             $this->add($alias, $alias);
 
-            return $this->resolve($alias);
+            // resolve this service with given args
+            return $this->resolve($alias, $args);
         }
 
 
