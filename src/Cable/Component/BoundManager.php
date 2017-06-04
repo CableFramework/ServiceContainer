@@ -11,6 +11,10 @@ class BoundManager
      */
     private $bond;
 
+    /**
+     * @var array
+     */
+    private $singleton;
 
     /**
      * @var array
@@ -33,6 +37,24 @@ class BoundManager
             Container::NOT_SHARED,
             $this->bond[$alias]
         );
+    }
+
+    /**
+     * @param $name
+     * @param null $value
+     * @return $this|bool|mixed
+     */
+    public function singleton($name, $value = null){
+        if (null === $value) {
+            return isset($this->singleton[$name]) ?
+                $this->singleton[$name] :
+                false;
+        }
+
+
+        $this->singleton[$name] = $value;
+
+        return $this;
     }
 
     /**

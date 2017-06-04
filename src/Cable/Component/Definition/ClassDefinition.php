@@ -14,15 +14,18 @@ class ClassDefinition extends Definition
      */
     private $container;
 
+
     /**
      * ClassDefinition constructor.
      * @param Container $container
+     * @param bool $singleton
      * @param $name
      */
-    public function __construct(Container $container, $name)
+    public function __construct(Container $container, $name, $singleton = false)
     {
         $this->container = $container;
         $this->name = $name;
+        $this->singleton = $singleton;
     }
 
     /**
@@ -47,4 +50,20 @@ class ClassDefinition extends Definition
     {
        return new MethodDefinition($this->container, $this->name, $name);
     }
+
+
+    /**
+     * @param bool $singleton
+     * @return ClassDefinition
+     */
+    public function setSingleton($singleton)
+    {
+        $this->container
+            ->getBoundManager()
+            ->singleton($this->name, $singleton);
+
+        return $this;
+    }
+
+
 }

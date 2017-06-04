@@ -126,6 +126,24 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
+     * this method marks your alias as a singleton
+     * so it will be resolve only once and reuse everytime
+     *
+     * @param string $alias the alias name of instance, you might wanna give an interface name
+     * @param mixed $callback the callback can be an object, Closure or the name of class
+     * @example add('mysql', 'MysqlInterface')
+     * @param bool $share if you put true on this argument, this will shared with other container objects
+     * @see Container::share()
+     * @example add('mysql', 'MysqlInterface', true);
+     * @throws ResolverException
+     * @return ClassDefinition
+     */
+    public function singleton($alias, $callback, $share = false)
+    {
+        return $this->add($alias, $callback, $share)->setSingleton(true);
+    }
+
+    /**
      * @param string $alias the alias name of instance, you might wanna give an interface name
      * @param mixed $callback the callback can be an object, Closure or the name of class
      * @example add('mysql', 'MysqlInterface')
@@ -156,7 +174,7 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        return new ClassDefinition($this, $alias);
+        return (new ClassDefinition($this, $alias))->setSingleton(false);
     }
 
     /**
@@ -229,8 +247,10 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function resolve($alias, array $args = [], $shared = null)
     {
+        $singleton = $this->getBoundManager()->singleton($alias);
+
         // determine the alias already resolved before or not.
-        if ($this->hasResolvedBefore($alias)) {
+        if ($singleton && $this->hasResolvedBefore($alias)) {
 
             // we resolved that before, let's reuse it.
             return $this->getAlreadyResolved($alias);
@@ -269,7 +289,9 @@ class Container implements ContainerInterface, \ArrayAccess
         // we already resolve and saved it. We don't need this definition anymore.
         // so we will remove it.
         // this will save memory
-        $this->removeResolvedFromBound($shared, $alias);
+        if ($singleton === true) {
+            $this->removeResolvedFromBound($shared, $alias);
+        }
 
         return $resolved;
     }
@@ -380,28 +402,26 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         $bounded = [];
 
+
         foreach ($parameters as $parameter) {
 
+
             $name = $parameter->getName();
-            $class = $parameter->getClass()->getName();
 
+            if (null !== ($class = $this->isClass($parameter))) {
+                $name = $class->getName();
+            }
 
-            if (isset($args[$class]) || isset($args[$name])) {
-
+            if (isset($args[$name])) {
                 // we will check the argument is a context or a standart argument
                 $bounded[$name] = $this->resolveContextOrArgument(
-                    isset($args[$class]) ? $args[$class] : $args[$name]
+                    $args[$name]
                 );
 
                 continue;
             }
 
-            if (!isset($args[$name])) {
-                $bounded[$name] = $this->resolveArgument($parameter);
-            } else {
-                $bounded[$name] = $args[$name];
-            }
-
+            $bounded[$name] = $this->resolveArgument($parameter);
 
         }
 
@@ -487,9 +507,10 @@ class Container implements ContainerInterface, \ArrayAccess
             return $parameter->getDefaultValue();
         } catch (\ReflectionException $exception) {
 
-            if ($parameter->allowsNull()) {
-                return null;
-            }
+            throw new NotFoundException(
+                sprintf('%s parameter does not found',
+                    $parameter->getName())
+            );
 
         }
 

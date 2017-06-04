@@ -3,7 +3,7 @@
 namespace Cable\Container\Definition;
 
 
-class Definition
+abstract class Definition
 {
 
 

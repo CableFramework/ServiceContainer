@@ -3,7 +3,6 @@ namespace Cable\Container;
 
 
 use Cable\Container\Definition\AbstractDefinition;
-use Cable\Container\Resolver\ResolverException;
 
 /**
  * Class Expectation
