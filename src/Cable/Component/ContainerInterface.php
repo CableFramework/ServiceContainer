@@ -2,6 +2,8 @@
 
 namespace Cable\Container;
 
+use Cable\Container\Definition\ContextDefinition;
+
 /**
  * Interface ContainerInterface
  * @package Cable\Container
@@ -61,4 +63,11 @@ interface ContainerInterface
      * @throws ProviderException
      */
     public function addProvider($provider);
+
+    /**
+     * @param string $alias the name of alias
+     * @return ContextDefinition
+     */
+    public function when($alias);
+
 }
