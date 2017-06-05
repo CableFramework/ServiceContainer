@@ -26,6 +26,12 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @var array
      */
+    private $aliases;
+
+
+    /**
+     * @var array
+     */
     private $providers;
 
 
@@ -82,6 +88,18 @@ class Container implements ContainerInterface, \ArrayAccess
         if (null !== $this->providers) {
             $this->handleProviders();
         }
+    }
+
+    /**
+     * @param string $abstract
+     * @param string $alias
+     * @return $this
+     */
+    public function alias($abstract, $alias)
+    {
+        $this->aliases[$abstract] = $alias;
+
+        return $this;
     }
 
     /**
@@ -239,6 +257,18 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param string $alias
      * @param array $args
+     * @param null $shared
+     * @return mixed
+     */
+    public function make($alias, array $args = [], $shared = null)
+    {
+        return $this->resolve($alias, $args, $shared);
+    }
+
+
+    /**
+     * @param string $alias
+     * @param array $args
      * @param bool|null $shared
      * @throws NotFoundException
      * @throws \ReflectionException
@@ -248,6 +278,11 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function resolve($alias, array $args = [], $shared = null)
     {
+        // if it is an alias we will solve the orjinal one
+        if (isset($this->aliases[$alias])) {
+            $alias = $this->aliases[$alias];
+        }
+
         $singleton = $this->getBoundManager()->singleton($alias);
 
         // determine the alias already resolved before or not.
