@@ -57,7 +57,7 @@ class ClassDefinition extends Definition
      */
     public function alias($alias)
     {
-        $this->container->alias($this->getName(), $alias);
+        $this->container->alias($alias, $this->getName());
     }
 
     /**
