@@ -51,6 +51,14 @@ class ClassDefinition extends Definition
        return new MethodDefinition($this->container, $this->name, $name);
     }
 
+    /**
+     * @param string $alias
+     * @return $this
+     */
+    public function alias($alias)
+    {
+        $this->container->alias($this->getName(), $alias);
+    }
 
     /**
      * @param bool $singleton

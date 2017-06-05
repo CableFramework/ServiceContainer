@@ -18,13 +18,20 @@ class Factory
      */
     public static function create(ProviderRepository $providerRepository = null)
     {
-
-
-        return new Container(
+        $container = new Container(
             new BoundManager(),
             new MethodManager(),
             new ArgumentManager(),
             $providerRepository
         );
+
+        $container->add(
+            Container::class,
+            function () use ($container) {
+                return $container;
+            }
+        )->alias(ContainerInterface::class);
+
+        return $container;
     }
 }

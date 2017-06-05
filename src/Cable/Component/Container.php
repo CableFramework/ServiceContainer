@@ -85,6 +85,7 @@ class Container implements ContainerInterface, \ArrayAccess
         $this->argumentManager = $argumentManager;
         $this->providers = $providerRepository;
 
+
         if (null !== $this->providers) {
             $this->handleProviders();
         }
