@@ -67,6 +67,12 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private $argumentManager;
 
+
+    /**
+     * @var array
+     */
+    private $provided;
+
     /**
      * Container constructor.
      * @param BoundManager $boundManager
@@ -122,9 +128,13 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function addProvider($provider)
     {
+
         if (is_string($provider)) {
             $provider = new  $provider;
         }
+
+        // we need that provider name
+        $name = get_class($provider);
 
         if (!$provider instanceof ServiceProvider) {
             throw new ProviderException(
@@ -139,10 +149,19 @@ class Container implements ContainerInterface, \ArrayAccess
             ->boot();
 
         $provider->register();
-
+        // we save it
+        $this->provided[] = $name;
         return $this;
     }
 
+
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function isProvided($name){
+        return array_search($name, $this->provided, true);
+    }
 
     /**
      * this method marks your alias as a singleton
@@ -249,9 +268,8 @@ class Container implements ContainerInterface, \ArrayAccess
         // we create a new context definition instance
         // and return it, the user will be abel to access needs and having
         // methods now
-        $contextDefinition = new ContextDefinition($this, $alias);
+        return new ContextDefinition($this, $alias);
 
-        return $contextDefinition;
     }
 
 
@@ -259,6 +277,13 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $alias
      * @param array $args
      * @param null $shared
+     *
+     *
+     * @throws ArgumentException
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     *
      * @return mixed
      */
     public function make($alias, array $args = [], $shared = null)
@@ -268,6 +293,39 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
+     * resolves the given string, Controller@method
+     *
+     * @param string $name
+     * @param array $args
+     *
+     * @throws ArgumentException
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     *
+     * @return mixed
+     */
+    public function dispatch($name,array $args = []){
+        if (false === strpos($name, '@')) {
+            return $this->resolve($name);
+        }
+
+
+        list($alias, $method) = explode('@', $name);
+
+        return $this->call(
+            $this->resolve($alias),
+            $method,
+            $args
+        );
+    }
+
+    /**
+     * resolves the given alias
+     *
+     * you can give an object, the name of class or the alias name
+     *
+     *
      * @param string $alias
      * @param array $args
      * @param bool|null $shared
