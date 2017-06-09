@@ -306,12 +306,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @return mixed
      */
     public function dispatch($name,array $args = []){
-        if (false === strpos($name, '@')) {
+        if (false === strpos($name, '::')) {
             return $this->resolve($name);
         }
 
 
-        list($alias, $method) = explode('@', $name);
+        list($alias, $method) = explode('::', $name);
 
         return $this->call(
             $this->resolve($alias),
