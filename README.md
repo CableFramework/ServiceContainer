@@ -92,3 +92,15 @@ $container->addProvider(Provider::class);
 $test = $container->resolve('test');
 
 ```
+
+## tag
+
+
+```php 
+
+$container->tag([Deneme::class, Test::class], 'test');
+
+
+list($deneme, $test) = $container->tagged('test');
+
+```
