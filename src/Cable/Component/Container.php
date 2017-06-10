@@ -26,6 +26,11 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @var array
      */
+    private $tagged;
+
+    /**
+     * @var array
+     */
     private $aliases;
 
 
@@ -97,6 +102,35 @@ class Container implements ContainerInterface, \ArrayAccess
         }
     }
 
+    /**
+     * @param array $aliases
+     * @param $name
+     * @return $this
+     */
+    public function tag(array $aliases = [], $name)
+    {
+        $this->tagged[$name] = $aliases;
+
+        return $this;
+    }
+
+
+    /**
+     * @param $name
+     * @return array
+     * @throws NotFoundException
+     */
+    public function tagged($name)
+    {
+        if (!isset($this->tagged[$name]) || empty($this->tagged[$name])) {
+            throw new NotFoundException(sprintf(
+                'nothing found on %s tag',
+                $name
+            ));
+        }
+
+        return  array_map(array($this,'make'), $this->tagged[$name]);
+    }
     /**
      * @param string $abstract
      * @param string $alias
