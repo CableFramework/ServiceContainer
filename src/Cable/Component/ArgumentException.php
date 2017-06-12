@@ -3,7 +3,7 @@
 namespace Cable\Container;
 
 
-class ArgumentException extends \Exception
-{
+use Psr\Container\ContainerExceptionInterface;
 
-}
+class ArgumentException extends \Exception implements ContainerExceptionInterface
+{}

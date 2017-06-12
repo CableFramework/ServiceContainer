@@ -3,12 +3,12 @@
 namespace Cable\Container;
 
 use Cable\Container\Definition\ContextDefinition;
-
+use Psr\Container\ContainerInterface as PsrContainerInterface;
 /**
  * Interface ContainerInterface
  * @package Cable\Container
  */
-interface ContainerInterface
+interface ContainerInterface extends PsrContainerInterface
 {
     /**
      * @param string|object $alias

@@ -2,12 +2,11 @@
 
 namespace Cable\Container;
 
-use Cable\Container\Definition\AbstractDefinition;
 use Cable\Container\Definition\ClassDefinition;
 use Cable\Container\Definition\ContextDefinition;
 use Cable\Container\Definition\MethodDefinition;
-use Cable\Container\Definition\MethodDefiniton;
-use Cable\Container\Definition\ObjectDefinition;
+use Psr\Container\ContainerExceptionInterface;
+use Psr\Container\NotFoundExceptionInterface;
 
 /**
  * Created by PhpStorm.
@@ -313,10 +312,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param null $shared
      *
      *
-     * @throws ArgumentException
-     * @throws \ReflectionException
-     * @throws NotFoundException
-     * @throws ExpectationException
+     * @throws ContainerExceptionInterface
      *
      * @return mixed
      */
@@ -331,11 +327,7 @@ class Container implements ContainerInterface, \ArrayAccess
      *
      * @param string $name
      * @param array $args
-     *
-     * @throws ArgumentException
-     * @throws \ReflectionException
-     * @throws NotFoundException
-     * @throws ExpectationException
+     * @throws ContainerExceptionInterface
      *
      * @return mixed
      */
@@ -363,14 +355,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $alias
      * @param array $args
      * @param bool|null $shared
-     * @throws NotFoundException
-     * @throws \ReflectionException
-     * @throws ExpectationException
-     * @throws ArgumentException
+     * @throws ContainerExceptionInterface
      * @return mixed
      */
     public function resolve($alias, array $args = [], $shared = null)
     {
+
         // if it is an alias we will solve the orjinal one
         if (isset($this->aliases[$alias])) {
             $alias = $this->aliases[$alias];
@@ -431,10 +421,7 @@ class Container implements ContainerInterface, \ArrayAccess
      *
      * @param object $definition
      * @param string $alias
-     * @throws \ReflectionException
-     * @throws NotFoundException
-     * @throws ExpectationException
-     * @throws ArgumentException
+     * @throws ContainerExceptionInterface
      * @return mixed
      */
     private function resolveObject($definition, $alias)
@@ -447,14 +434,20 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        $class = new \ReflectionClass($definition);
+        try{
+            $class = new \ReflectionClass($definition);
+        }catch (\ReflectionException $exception){
+            throw new ReflectionException(
+                $exception->getMessage()
+            );
+        }
 
 
         // the given class if is not instantiable throw an exception
         // that happens when you try resolve an interface or abstract class
         // without saving an alias on that class before
         if (false === $class->isInstantiable()) {
-            throw new \ReflectionException(
+            throw new ReflectionException(
                 sprintf(
                     '%s class in not instantiable, probably an interface or abstract',
                     $class->getName()
@@ -479,15 +472,18 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param string $alias
      * @param \Closure $closure
-     * @throws \ReflectionException
-     * @throws NotFoundException
-     * @throws ExpectationException
-     * @throws ArgumentException
+     * @throws ContainerExceptionInterface
      * @return mixed
      */
     private function resolveClosure($alias, \Closure $closure)
     {
-        $reflectionFunction = new \ReflectionFunction($closure);
+        try{
+            $reflectionFunction = new \ReflectionFunction($closure);
+        }catch (\ReflectionException $exception){
+            throw new ReflectionException(
+                $exception->getMessage()
+            );
+        }
 
         $parameters = $this->resolveParameters(
             $reflectionFunction->getParameters(),
@@ -606,7 +602,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param null|mixed $happens
      * @return mixed
      */
-    private function resolveContextCallback(\Closure $callback, $happens = [])
+    private function resolveContextCallback(\Closure $callback,array $happens = [])
     {
         $happens[] = $this;
 
@@ -616,10 +612,7 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      *
      * @param \ReflectionParameter $parameter
-     * @throws ExpectationException
-     * @throws ArgumentException
-     * @throws NotFoundException
-     * @throws \ReflectionException
+     * @throws ContainerExceptionInterface
      * @return mixed
      */
     private function resolveArgument(\ReflectionParameter $parameter)
@@ -1032,4 +1025,35 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
 
+    /**
+     * Finds an entry of the container by its identifier and returns it.
+     *
+     * @param string $id Identifier of the entry to look for.
+     *
+     * @throws NotFoundExceptionInterface  No entry was found for **this** identifier.
+     * @throws ContainerExceptionInterface Error while retrieving the entry.
+     *
+     *
+     * @return mixed Entry.
+     */
+    public function get($id)
+    {
+        return $this->resolve($id);
+    }
+
+    /**
+     * Returns true if the container can return an entry for the given identifier.
+     * Returns false otherwise.
+     *
+     * `has($id)` returning true does not mean that `get($id)` will not throw an exception.
+     * It does however mean that `get($id)` will not throw a `NotFoundExceptionInterface`.
+     *
+     * @param string $id Identifier of the entry to look for.
+     *
+     * @return bool
+     */
+    public function has($id)
+    {
+        return $this->getBoundManager()->has($id);
+    }
 }

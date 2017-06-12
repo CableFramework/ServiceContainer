@@ -3,7 +3,9 @@
 namespace Cable\Container;
 
 
-class ExpectationException extends \Exception
+use Psr\Container\ContainerExceptionInterface;
+
+class ExpectationException extends \Exception implements ContainerExceptionInterface
 {
 
 }

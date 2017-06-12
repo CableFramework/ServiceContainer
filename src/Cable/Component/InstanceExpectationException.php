@@ -2,7 +2,9 @@
 
 namespace Cable\Container;
 
-class InstanceExpectationException extends \Exception
+use Psr\Container\ContainerExceptionInterface;
+
+class InstanceExpectationException extends \Exception implements ContainerExceptionInterface
 {
 
 }

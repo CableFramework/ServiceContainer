@@ -1,7 +1,9 @@
 <?php
+
 namespace Cable\Container;
 
 use Exception;
 use Psr\Container\ContainerExceptionInterface;
 
-class ProviderException extends Exception implements ContainerExceptionInterface {}
+class ReflectionException extends Exception implements ContainerExceptionInterface
+{}
