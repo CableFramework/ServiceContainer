@@ -128,8 +128,9 @@ class Container implements ContainerInterface, \ArrayAccess
             ));
         }
 
-        return  array_map(array($this,'make'), $this->tagged[$name]);
+        return array_map(array($this, 'make'), $this->tagged[$name]);
     }
+
     /**
      * @param string $abstract
      * @param string $alias
@@ -192,7 +193,8 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $name
      * @return mixed
      */
-    public function isProvided($name){
+    public function isProvided($name)
+    {
         return array_search($name, $this->provided, true);
     }
 
@@ -328,10 +330,15 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $name
      * @param array $args
      * @throws ContainerExceptionInterface
-     *
+     * @throws ReflectionException
+     * @throws ArgumentException
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
      * @return mixed
      */
-    public function dispatch($name,array $args = []){
+    public function dispatch($name, array $args = [])
+    {
         if (false === strpos($name, '::')) {
             return $this->resolve($name);
         }
@@ -345,6 +352,46 @@ class Container implements ContainerInterface, \ArrayAccess
             $args
         );
     }
+
+
+    /**
+     * @param $alias
+     * @param array $attributes
+     * @return mixed
+     * @throws PropertyNotFoundException
+     * @throws ContainerExceptionInterface
+     * @throws ReflectionException
+     * @throws ArgumentException
+     * @throws \ReflectionException
+     * @throws NotFoundException
+     * @throws ExpectationException
+     */
+    public function fill($alias, array $attributes)
+    {
+        $resolved = $this->make($alias);
+
+        $class = new \ReflectionClass($resolved);
+
+        foreach ($attributes as $name => $attribute) {
+            if (!$class->hasProperty($name)) {
+                throw new PropertyNotFoundException(
+                    sprintf(
+                        '%s property could not found',
+                        $name
+                    )
+                );
+            }
+
+
+            $property = $class->getProperty($name);
+            $property->setAccessible(true);
+            $property->setValue($resolved, $attribute);
+        }
+
+
+        return $resolved;
+    }
+
 
     /**
      * resolves the given alias
@@ -434,9 +481,9 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        try{
+        try {
             $class = new \ReflectionClass($definition);
-        }catch (\ReflectionException $exception){
+        } catch (\ReflectionException $exception) {
             throw new ReflectionException(
                 $exception->getMessage()
             );
@@ -477,9 +524,9 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function resolveClosure($alias, \Closure $closure)
     {
-        try{
+        try {
             $reflectionFunction = new \ReflectionFunction($closure);
-        }catch (\ReflectionException $exception){
+        } catch (\ReflectionException $exception) {
             throw new ReflectionException(
                 $exception->getMessage()
             );
@@ -602,7 +649,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param null|mixed $happens
      * @return mixed
      */
-    private function resolveContextCallback(\Closure $callback,array $happens = [])
+    private function resolveContextCallback(\Closure $callback, array $happens = [])
     {
         $happens[] = $this;
 
@@ -671,6 +718,7 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         return $parameter->getClass();
     }
+
 
     /**
      * @param string $shared
