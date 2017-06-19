@@ -366,9 +366,13 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws NotFoundException
      * @throws ExpectationException
      */
-    public function fill($alias, array $attributes)
+    public function fill($alias, array $attributes = [])
     {
         $resolved = $this->make($alias);
+
+        if (empty($attributes)) {
+            return $resolved;
+        }
 
         $class = new \ReflectionClass($resolved);
 
