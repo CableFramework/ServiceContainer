@@ -957,7 +957,7 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param string $alias the name, instance or alias of class
+     * @param string $instance the name, instance or alias of class
      * @param string $method the name method
      * @param array $args the args will be passed in to resolver, give empty if you already passed them
      * @return mixed
