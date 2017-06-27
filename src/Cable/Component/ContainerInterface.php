@@ -13,10 +13,9 @@ interface ContainerInterface extends PsrContainerInterface
     /**
      * @param string|object $alias
      * @param object|\Closure $callback
-     * @param bool $share
      * @return mixed
      */
-    public function add($alias, $callback, $share = false);
+    public function add($alias, $callback);
 
 
 

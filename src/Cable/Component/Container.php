@@ -5,7 +5,6 @@ namespace Cable\Container;
 use Cable\Annotation\Annotation;
 use Cable\Annotation\ContainerNotFoundException;
 use Cable\Container\Annotations\Provider;
-use Cable\Container\Annotations\Inject;
 use Cable\Container\Definition\ClassDefinition;
 use Cable\Container\Definition\ContextDefinition;
 use Cable\Container\Definition\MethodDefinition;
@@ -21,9 +20,6 @@ use Psr\Container\NotFoundExceptionInterface;
 class Container implements ContainerInterface, \ArrayAccess
 {
 
-
-    const SHARED = 'shared';
-    const NOT_SHARED = 'not-shared';
 
     /**
      * @var array
@@ -223,19 +219,14 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $alias the alias name of instance, you might wanna give an interface name
      * @param mixed $callback the callback can be an object, Closure or the name of class
      * @example add('mysql', 'MysqlInterface')
-     * @param bool $share if you put true on this argument, this will shared with other container objects
      * @see Container::share()
      * @example add('mysql', 'MysqlInterface', true);
      * @throws ResolverException
      * @return ClassDefinition
      */
-    public function add($alias, $callback, $share = false)
+    public function add($alias, $callback)
     {
         $alias = $this->getClassName($alias);
-
-        if (true === $share) {
-            return $this->share($alias, $callback);
-        }
 
         $singleton = false;
 
@@ -279,24 +270,6 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param string $alias
-     * @param mixed $callback
-     * @throws ResolverException
-     * @return ClassDefinition
-     *
-     */
-    public function share($alias, $callback)
-    {
-        if (is_object($callback)) {
-            static::$sharedResolved[$alias] = $callback;
-        } else {
-            BoundManager::addShare($alias, $callback);
-        }
-
-        return new ClassDefinition($alias, $callback);
-    }
-
-    /**
      * @param string $alias the name of alias
      * @return ContextDefinition
      */
@@ -313,16 +286,13 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param string $alias
      * @param array $args
-     * @param null $shared
-     *
-     *
      * @throws ContainerExceptionInterface
      *
      * @return mixed
      */
-    public function make($alias, array $args = [], $shared = null)
+    public function make($alias, array $args = [])
     {
-        return $this->resolve($alias, $args, $shared);
+        return $this->resolve($alias, $args);
     }
 
 
@@ -407,11 +377,10 @@ class Container implements ContainerInterface, \ArrayAccess
      *
      * @param string $alias
      * @param array $args
-     * @param bool|null $shared
      * @throws ContainerExceptionInterface
      * @return mixed
      */
-    public function resolve($alias, array $args = [], $shared = null)
+    public function resolve($alias, array $args = [])
     {
 
         // if it is an alias we will solve the orjinal one
@@ -437,9 +406,9 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
-        list($shared, $definition) = $this
+        $definition = $this
             ->boundManager
-            ->findDefinition($alias, $shared);
+            ->findDefinition($alias);
 
         // if we add new args, we'll set them into definition
         if ( ! empty($args)) {
@@ -458,13 +427,13 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // we resolved the definition, now we will add into resolvedBond or sharedResolved
         // and we will reuse they when we want to resolve them
-        $this->saveResolved($shared, $alias, $resolved);
+        $this->saveResolved($alias, $resolved);
 
         // we already resolve and saved it. We don't need this definition anymore.
         // so we will remove it.
         // this will save memory
         if ($singleton === true) {
-            $this->removeResolvedFromBound($shared, $alias);
+            $this->removeResolvedFromBound($alias);
         }
 
         return $resolved;
@@ -534,9 +503,10 @@ class Container implements ContainerInterface, \ArrayAccess
     /**
      * @param \ReflectionClass $class
      */
-    private function resolveProviderAnnotations(\ReflectionClass $class){
+    private function resolveProviderAnnotations(\ReflectionClass $class)
+    {
         if ('' === $class->getDocComment()) {
-            return ;
+            return;
         }
 
         $annotation = $this->get(Annotation::class);
@@ -547,8 +517,8 @@ class Container implements ContainerInterface, \ArrayAccess
 
         $execute = $annotation->parse($class->getDocComment())->execute();
 
-        if ( !isset($execute['Provider'])) {
-            return ;
+        if ( ! isset($execute['Provider'])) {
+            return;
         }
 
 
@@ -558,7 +528,7 @@ class Container implements ContainerInterface, \ArrayAccess
          * @var Provider[] $providers
          */
 
-        foreach ($providers as $provider){
+        foreach ($providers as $provider) {
 
             /**
              * @var Provider $provider
@@ -573,14 +543,15 @@ class Container implements ContainerInterface, \ArrayAccess
      *
      * @throws ProviderException
      */
-    private function resolveProviderAnnotation($provider){
+    private function resolveProviderAnnotation($provider)
+    {
         if (is_array($provider)) {
 
-            foreach ($provider as $item){
+            foreach ($provider as $item) {
                 $this->resolveProviderAnnotation($item);
             }
 
-        }else{
+        } else {
             if (false === $this->isProvided($provider)) {
                 $this->addProvider($provider);
             }
@@ -595,7 +566,7 @@ class Container implements ContainerInterface, \ArrayAccess
     private function resolveInjectAnnotations(\ReflectionFunctionAbstract $abstract, $alias = '')
     {
 
-        if (!$this->has(Annotation::class)) {
+        if ( ! $this->has(Annotation::class)) {
             throw new ContainerNotFoundException(
                 'You did not provide annotation service provider'
             );
@@ -612,12 +583,12 @@ class Container implements ContainerInterface, \ArrayAccess
         );
 
 
-        if ( !isset($parsed['Inject'])) {
-            return ;
+        if ( ! isset($parsed['Inject'])) {
+            return;
         }
 
 
-        foreach ($parsed['Inject'] as $inject){
+        foreach ($parsed['Inject'] as $inject) {
             $injectValue = $inject->inject;
 
             $this->resolveInjectAnnotation($injectValue, $alias);
@@ -629,11 +600,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param array $inject
      * @param $alias
      */
-    private function resolveInjectAnnotation(array $inject, $alias){
-        foreach ($inject as $item => $value){
+    private function resolveInjectAnnotation(array $inject, $alias)
+    {
+        foreach ($inject as $item => $value) {
             if (is_array($value)) {
                 $this->resolveInjectAnnotation($value, $alias);
-            }else{
+            } else {
                 $this->prepareInjectContext($alias, $item, $value);
             }
         }
@@ -644,12 +616,15 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $argument
      * @param string $give
      */
-    private function prepareInjectContext($alias, $argument, $give){
+    private function prepareInjectContext($alias, $argument, $give)
+    {
         $this->when($alias)
             ->needs(str_replace('$', '', $argument))
-            ->give(function () use($give){
-                return $this->resolve($give);
-            });
+            ->give(
+                function () use ($give) {
+                    return $this->resolve($give);
+                }
+            );
     }
 
     /**
@@ -861,27 +836,18 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param string $shared
      * @param string $alias
      */
-    private function removeResolvedFromBound($shared, $alias)
+    private function removeResolvedFromBound($alias)
     {
-        if ($shared === self::SHARED) {
-            BoundManager::deleteShared($alias);
-        } else {
-            $this->boundManager->deleteBond($alias);
-        }
+        $this->boundManager->deleteBond($alias);
     }
 
     /**
      * @param $alias
      * @param $resolved
      */
-    private function saveResolved($shared, $alias, $resolved)
+    private function saveResolved($alias, $resolved)
     {
-
-        if ($shared === static::SHARED) {
-            static::$sharedResolved[$alias] = $resolved;
-        } else {
-            $this->resolved[$alias] = $resolved;
-        }
+        $this->resolved[$alias] = $resolved;
     }
 
     /**
@@ -933,7 +899,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function hasResolvedBefore($alias)
     {
-        return isset($this->resolved[$alias]) || isset(static::$sharedResolved[$alias]);
+        return isset($this->resolved[$alias]);
     }
 
     /**
@@ -991,27 +957,6 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
-     * @param string $alias
-     * @return $this
-     * @throws NotFoundException
-     */
-    public function deleteFromShare($alias)
-    {
-        if ( ! BoundManager::hasShare($alias)) {
-            throw new NotFoundException(
-                sprintf(
-                    '%s bond not found',
-                    $alias
-                )
-            );
-        }
-
-        BoundManager::deleteShared($alias);
-
-        return $this;
-    }
-
-    /**
      * @param string|object $class
      * @return string
      */
@@ -1033,6 +978,7 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws ResolverException
      * @throws \ReflectionException
      * @throws ExpectationException
+     * @throws ContainerNotFoundException
      * @throws ArgumentException
      */
     public function call($instance, $method, array $args = [])
