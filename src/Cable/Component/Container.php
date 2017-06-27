@@ -694,6 +694,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         foreach ($parameters as $parameter) {
             $name = $parameter->getName();
+
             if (isset($args[$name])) {
                 // we will check the argument is a context or a standart argument
                 $bounded[$name] = $this->resolveContextOrArgument(
@@ -703,7 +704,9 @@ class Container implements ContainerInterface, \ArrayAccess
                 continue;
             }
 
-            $bounded[$name] = $this->resolveArgument($parameter);
+
+
+            $bounded[$name] = $this->resolveArgument($parameter->getClass());
 
         }
 

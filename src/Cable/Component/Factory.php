@@ -21,18 +21,14 @@ class Factory
      */
     public static function create(ProviderRepository $providerRepository = null)
     {
-        if (null === $providerRepository) {
-            $providerRepository = new ProviderRepository();
-
-            $providerRepository->add(
-                AnnotationServiceProvider::class
-            );
-        }
-
         $container = new Container(
             $providerRepository
         );
 
+
+        if (!$container->isProvided(AnnotationServiceProvider::class)) {
+            $container->addProvider(AnnotationServiceProvider::class);
+        }
 
         $container->add(
             Container::class,
