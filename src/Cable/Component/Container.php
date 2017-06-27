@@ -962,7 +962,6 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param array $args the args will be passed in to resolver, give empty if you already passed them
      * @return mixed
      * @throws NotFoundException
-     * @throws ResolverException
      * @throws \ReflectionException
      * @throws ExpectationException
      * @throws ContainerNotFoundException
