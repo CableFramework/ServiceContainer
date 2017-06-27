@@ -12,14 +12,14 @@ abstract  class ServiceProvider
     /**
      * register new providers or something
      *
-     * @return mixed
+     * @return void
      */
     abstract public function boot();
 
     /**
      * register the content
      *
-     * @return mixed
+     * @return void
      */
     abstract public function register();
 
