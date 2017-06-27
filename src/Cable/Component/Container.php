@@ -587,6 +587,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     /**
      * @param \ReflectionFunctionAbstract $abstract
+     * @param string $alias the name of alias
      * @throws ContainerNotFoundException
      */
     private function resolveInjectAnnotations(\ReflectionFunctionAbstract $abstract, $alias = '')
@@ -687,6 +688,9 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function resolveMethod($alias, $method, $instance, \ReflectionMethod $abstract)
     {
+        $this->resolveInjectAnnotations($abstract, $alias);
+
+
         $parameters = $this->resolveParameters(
             $abstract,
             $this->getArgumentManager()

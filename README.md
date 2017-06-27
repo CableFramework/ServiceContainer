@@ -104,3 +104,66 @@ $container->tag([Deneme::class, Test::class], 'test');
 list($deneme, $test) = $container->tagged('test');
 
 ```
+
+## Using Annotations
+
+
+#### Provider Annotation
+
+You can put a @Provider annotation into class comment doc
+
+@Provider will be trigged when you are trying to resolve that class
+
+```php 
+
+/**
+ *
+ * @Provider("Your\Provide\Class")
+ * // you can give multiple providers like @Provider({"FirstProviderClass", "SecondProviderClass"})
+ */
+class TestClass{
+
+
+}
+
+```
+
+#### Inject Annotation
+
+You can put @Inject Annotation into any method
+
+```php
+use Cable\Container\Annotations\Inject;
+
+$container->add("my_alias_to_resolve", function(){
+      return "hello world";
+});
+
+
+class TestClass{
+    
+    
+    /**
+     *
+     * @Inject({"$test": "my_alias_to_resolve"})
+     *
+     */
+    public function __construct($test){
+    
+    }
+    
+}
+
+ ```
+
+Same as ;
+
+```php 
+
+$container->when(Test::class)
+          ->needs("test")
+          ->give(function(){
+              return $this->getContainer()->make("my_alias_to_resolve");
+          });
+
+```
