@@ -20,8 +20,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     const SHARED = 'shared';
     const NOT_SHARED = 'not-shared';
-
-
+    
     /**
      * @var array
      */
