@@ -719,11 +719,6 @@ class Container implements ContainerInterface, \ArrayAccess
 
         foreach ($parameters as $parameter) {
             $name = $parameter->getName();
-
-            if (null !== ($class = $this->isClass($parameter))) {
-                $name = $class->getName();
-            }
-
             if (isset($args[$name])) {
                 // we will check the argument is a context or a standart argument
                 $bounded[$name] = $this->resolveContextOrArgument(
