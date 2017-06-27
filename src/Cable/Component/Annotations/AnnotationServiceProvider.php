@@ -28,12 +28,13 @@ class AnnotationServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->getContainer()->add(Annotation::class, function() {
+        $this->getContainer()->singleton(Annotation::class, function() {
             Annotation::setContainer($this->getContainer());
 
             $annotation =  new Annotation((new Parser())->skipPhpDoc());
 
-            return $annotation->addCommand(new Inject());
+            return $annotation->addCommand(new Inject())
+                ->addCommand(new Provider());
         });
     }
 }

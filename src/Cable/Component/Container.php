@@ -2,6 +2,10 @@
 
 namespace Cable\Container;
 
+use Cable\Annotation\Annotation;
+use Cable\Annotation\ContainerNotFoundException;
+use Cable\Container\Annotations\Provider;
+use Cable\Container\Annotations\Inject;
 use Cable\Container\Definition\ClassDefinition;
 use Cable\Container\Definition\ContextDefinition;
 use Cable\Container\Definition\MethodDefinition;
@@ -20,7 +24,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
     const SHARED = 'shared';
     const NOT_SHARED = 'not-shared';
-    
+
     /**
      * @var array
      */
@@ -82,9 +86,8 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param ProviderRepository|null $providerRepository
      */
     public function __construct(
-                                ProviderRepository $providerRepository = null
-    )
-    {
+        ProviderRepository $providerRepository = null
+    ) {
         $this->boundManager = new BoundManager();
         $this->methodManager = new MethodManager();
         $this->argumentManager = new ArgumentManager();
@@ -116,11 +119,13 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function tagged($name)
     {
-        if (!isset($this->tagged[$name]) || empty($this->tagged[$name])) {
-            throw new NotFoundException(sprintf(
-                'nothing found on %s tag',
-                $name
-            ));
+        if ( ! isset($this->tagged[$name]) || empty($this->tagged[$name])) {
+            throw new NotFoundException(
+                sprintf(
+                    'nothing found on %s tag',
+                    $name
+                )
+            );
         }
 
         return array_map(array($this, 'make'), $this->tagged[$name]);
@@ -139,6 +144,8 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
+     *
+     * @throws ProviderException
      *  resolves providers
      */
     private function handleProviders()
@@ -165,7 +172,7 @@ class Container implements ContainerInterface, \ArrayAccess
         // we need that provider name
         $name = get_class($provider);
 
-        if (!$provider instanceof ServiceProvider) {
+        if ( ! $provider instanceof ServiceProvider) {
             throw new ProviderException(
                 sprintf(
                     '%s provider is not as expected',
@@ -180,6 +187,7 @@ class Container implements ContainerInterface, \ArrayAccess
         $provider->register();
         // we save it
         $this->provided[] = $name;
+
         return $this;
     }
 
@@ -233,7 +241,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         // if $callback is object we will mark it as resolved,
         // we dont need to resolve it anymore
-        if (is_object($callback) && !$callback instanceof \Closure) {
+        if (is_object($callback) && ! $callback instanceof \Closure) {
             $this->resolved[$alias] = $callback;
 
             // we mark that as a singleton, so we wont resolve it.
@@ -372,7 +380,7 @@ class Container implements ContainerInterface, \ArrayAccess
         $class = new \ReflectionClass($resolved);
 
         foreach ($attributes as $name => $attribute) {
-            if (!$class->hasProperty($name)) {
+            if ( ! $class->hasProperty($name)) {
                 throw new PropertyNotFoundException(
                     sprintf(
                         '%s property could not found',
@@ -435,9 +443,10 @@ class Container implements ContainerInterface, \ArrayAccess
             ->findDefinition($alias, $shared);
 
         // if we add new args, we'll set them into definition
-        if (!empty($args)) {
+        if ( ! empty($args)) {
             $this->getArgumentManager()->setClassArgs(
-                $alias, $args
+                $alias,
+                $args
             );
         }
 
@@ -468,6 +477,8 @@ class Container implements ContainerInterface, \ArrayAccess
      * @param object $definition
      * @param string $alias
      * @throws ContainerExceptionInterface
+     * @throws ContainerNotFoundException
+     * @throws ReflectionException
      * @return mixed
      */
     private function resolveObject($definition, $alias)
@@ -489,6 +500,9 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
 
+        $this->resolveProviderAnnotations($class);
+
+
         // the given class if is not instantiable throw an exception
         // that happens when you try resolve an interface or abstract class
         // without saving an alias on that class before
@@ -506,7 +520,7 @@ class Container implements ContainerInterface, \ArrayAccess
         $parameters = [];
 
         if (null !== $constructor) {
-            $this->resolveAnnotations($constructor);
+            $this->resolveInjectAnnotations($constructor, $alias);
 
             $parameters = $this->resolveParameters(
                 $constructor,
@@ -517,8 +531,122 @@ class Container implements ContainerInterface, \ArrayAccess
         return $class->newInstanceArgs($parameters);
     }
 
-    private function resolveAnnotations(\ReflectionFunctionAbstract $abstract){
 
+    private function resolveProviderAnnotations(\ReflectionClass $class){
+        if ('' === $class->getDocComment()) {
+            return ;
+        }
+
+        $annotation = $this->get(Annotation::class);
+
+        /**
+         * @var Annotation $annotation
+         */
+
+        $execute = $annotation->parse($class->getDocComment())->execute();
+
+        if ( !isset($execute['Provider'])) {
+            return ;
+        }
+
+
+        $providers = $execute['Provider'];
+
+        /**
+         * @var Provider[] $providers
+         */
+
+        foreach ($providers as $provider){
+
+            /**
+             * @var Provider $provider
+             */
+
+            $this->resolveProviderAnnotation($provider->provider);
+        }
+    }
+
+    /**
+     * @param array $provider
+     *
+     * @throws ProviderException
+     */
+    private function resolveProviderAnnotation($provider){
+        if (is_array($provider)) {
+
+            foreach ($provider as $item){
+                $this->resolveProviderAnnotation($item);
+            }
+
+        }else{
+            if (false === $this->isProvided($provider)) {
+                $this->addProvider($provider);
+            }
+        }
+    }
+
+    /**
+     * @param \ReflectionFunctionAbstract $abstract
+     * @throws ContainerNotFoundException
+     */
+    private function resolveInjectAnnotations(\ReflectionFunctionAbstract $abstract, $alias = '')
+    {
+
+        if (!$this->has(Annotation::class)) {
+            throw new ContainerNotFoundException(
+                'You did not provide annotation service provider'
+            );
+        }
+
+        $annotation = $this->get(Annotation::class);
+
+        /**
+         * @var Annotation $annotation
+         */
+
+        $parsed = $annotation->executeMethod(
+            $abstract
+        );
+
+
+        if ( !isset($parsed['Inject'])) {
+            return ;
+        }
+
+
+        foreach ($parsed['Inject'] as $inject){
+            $injectValue = $inject->inject;
+
+            $this->resolveInjectAnnotation($injectValue, $alias);
+        }
+
+    }
+
+    /**
+     * @param array $inject
+     * @param $alias
+     */
+    private function resolveInjectAnnotation(array $inject, $alias){
+        foreach ($inject as $item => $value){
+            if (is_array($value)) {
+                $this->resolveInjectAnnotation($value, $alias);
+            }else{
+                $this->prepareInjectContext($alias, $item, $value);
+            }
+        }
+    }
+
+    /**
+     * @param string $alias
+     * @param string $argument
+     * @param string $give
+     */
+    private function prepareInjectContext($alias, $argument, $give){
+        $this->when($alias)
+            ->needs(str_replace('$', '', $argument))
+            ->give(function () use($give){
+                return $this->resolve($give);
+            });
     }
 
     /**
@@ -612,7 +740,7 @@ class Container implements ContainerInterface, \ArrayAccess
     private function resolveContextOrArgument($arg)
     {
         // now we are checking the argument is defined as a context or not
-        if (!$arg instanceof ContextDefinition) {
+        if ( ! $arg instanceof ContextDefinition) {
             return $arg;
         }
 
@@ -634,11 +762,11 @@ class Container implements ContainerInterface, \ArrayAccess
         if (null !== $happens && $happens instanceof \Closure) {
             $happens = $happens($this);
 
-            if (!$happens) {
+            if ( ! $happens) {
                 $happens = [];
             }
 
-            return !empty($happens) ?
+            return ! empty($happens) ?
                 $this->resolveContextCallback($contextDefinition->callback, $happens) :
                 false;
         }
@@ -682,8 +810,10 @@ class Container implements ContainerInterface, \ArrayAccess
         } catch (\ReflectionException $exception) {
 
             throw new NotFoundException(
-                sprintf('%s parameter does not found',
-                    $parameter->getName())
+                sprintf(
+                    '%s parameter does not found',
+                    $parameter->getName()
+                )
             );
 
         }
@@ -705,10 +835,12 @@ class Container implements ContainerInterface, \ArrayAccess
             return null;
         }
 
-        throw new ArgumentException(sprintf(
-            '%s parameter does not have a default value and does not allow null',
-            $parameter->getName()
-        ));
+        throw new ArgumentException(
+            sprintf(
+                '%s parameter does not have a default value and does not allow null',
+                $parameter->getName()
+            )
+        );
 
     }
 
@@ -758,7 +890,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     private function checkExpectation($alias, $instance)
     {
-        if (!isset($this->expected[$alias])) {
+        if ( ! isset($this->expected[$alias])) {
             return $instance;
         }
 
@@ -766,7 +898,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
         foreach ($expecteds as $expected) {
 
-            if (!$instance instanceof $expected) {
+            if ( ! $instance instanceof $expected) {
                 throw new ExpectationException(
                     sprintf(
                         'in %s alias we were expecting %s, %s returned',
@@ -811,7 +943,8 @@ class Container implements ContainerInterface, \ArrayAccess
     public function addMethod($class, $method)
     {
         $this->methodManager->addMethod(
-            $class, $method
+            $class,
+            $method
         );
 
 
@@ -840,7 +973,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromBond($alias)
     {
-        if (!isset($this->bond[$alias])) {
+        if ( ! isset($this->bond[$alias])) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -862,7 +995,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromShare($alias)
     {
-        if (!BoundManager::hasShare($alias)) {
+        if ( ! BoundManager::hasShare($alias)) {
             throw new NotFoundException(
                 sprintf(
                     '%s bond not found',
@@ -904,15 +1037,15 @@ class Container implements ContainerInterface, \ArrayAccess
     {
         $alias = is_object($instance) ? $this->getClassName($instance) : $instance;
 
-        if (!$this->boundManager->has($alias)) {
+        if ( ! $this->boundManager->has($alias)) {
             $this->add($alias, $alias);
         }
 
         // if this method didnt add before, we'll add it and resolve it.
-        if (!$this->methodManager->hasMethod($alias, $method)) {
+        if ( ! $this->methodManager->hasMethod($alias, $method)) {
             $this->addMethod($alias, $method);
 
-            if (!empty($args)) {
+            if ( ! empty($args)) {
                 $this->getArgumentManager()
                     ->setMethodArgs($alias, $method, $args);
             }
@@ -945,6 +1078,7 @@ class Container implements ContainerInterface, \ArrayAccess
     public function setMethodManager($methodManager)
     {
         $this->methodManager = $methodManager;
+
         return $this;
     }
 
@@ -963,6 +1097,7 @@ class Container implements ContainerInterface, \ArrayAccess
     public function setBoundManager($boundManager)
     {
         $this->boundManager = $boundManager;
+
         return $this;
     }
 
@@ -981,6 +1116,7 @@ class Container implements ContainerInterface, \ArrayAccess
     public function setArgumentManager($argumentManager)
     {
         $this->argumentManager = $argumentManager;
+
         return $this;
     }
 
@@ -1105,6 +1241,6 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function has($id)
     {
-        return $this->getBoundManager()->has($id);
+        return $this->getBoundManager()->has($id) || $this->hasResolvedBefore($id);
     }
 }
