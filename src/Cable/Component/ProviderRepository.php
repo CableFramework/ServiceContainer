@@ -9,14 +9,15 @@ class ProviderRepository
      */
     private $providers;
 
+
     /**
-     * @param ServiceProvider $provider
+     * @param string|ServiceProvider $provider
      * @throws ProviderException
      * @return $this
      */
     public function add($provider)
     {
-        if ( !is_object($provider)) {
+        if ( is_string($provider)) {
             $provider = new $provider;
         }
 
