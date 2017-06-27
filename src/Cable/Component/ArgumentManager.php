@@ -24,7 +24,7 @@ class ArgumentManager
     public function getClassArgs($class)
     {
 
-        return isset($this->classArgs[$class]) && !empty($this->classArgs[$class])
+        return isset($this->classArgs[$class]) && ! empty($this->classArgs[$class])
             ? $this->classArgs[$class] :
             [];
     }
@@ -38,7 +38,7 @@ class ArgumentManager
     {
         $alias = $this->prepareMethodName($class, $method);
 
-        return isset($this->methodArgs[$alias]) && !empty(
+        return isset($this->methodArgs[$alias]) && ! empty(
         $this->methodArgs[$alias]
         ) ? $this->methodArgs[$alias] : [];
     }
@@ -75,7 +75,7 @@ class ArgumentManager
      */
     public function prepareMethodName($class, $method)
     {
-        return $class . '.' . $method;
+        return $class.'.'.$method;
     }
 
     /**
@@ -86,7 +86,12 @@ class ArgumentManager
      */
     public function give($alias, $argument, ContextDefinition $callback)
     {
-        $this->classArgs[$alias][$argument] = $callback;
+        if (strpos($alias, ".") === false) {
+            $this->classArgs[$alias][$argument] = $callback;
+        } else {
+            $this->methodArgs[$alias][$argument] = $callback;
+        }
+
 
         return $this;
     }

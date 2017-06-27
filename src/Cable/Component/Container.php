@@ -307,7 +307,6 @@ class Container implements ContainerInterface, \ArrayAccess
         // and return it, the user will be abel to access needs and having
         // methods now
         return new ContextDefinition($this, $alias);
-
     }
 
 
@@ -532,6 +531,9 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
 
+    /**
+     * @param \ReflectionClass $class
+     */
     private function resolveProviderAnnotations(\ReflectionClass $class){
         if ('' === $class->getDocComment()) {
             return ;
