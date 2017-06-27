@@ -888,9 +888,7 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function getAlreadyResolved($alias)
     {
-        return isset($this->resolved[$alias]) ?
-            $this->resolved[$alias] :
-            static::$sharedResolved[$alias];
+        return isset($this->resolved[$alias]) ? $this->resolved[$alias] : null;
     }
 
     /**
@@ -926,11 +924,9 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function delete($alias)
     {
-        if (isset($this->bond[$alias])) {
+        if ($this->has($alias)) {
             return $this->deleteFromBond($alias);
         }
-
-        return $this->deleteFromShare($alias);
     }
 
 
@@ -941,15 +937,6 @@ class Container implements ContainerInterface, \ArrayAccess
      */
     public function deleteFromBond($alias)
     {
-        if ( ! isset($this->bond[$alias])) {
-            throw new NotFoundException(
-                sprintf(
-                    '%s bond not found',
-                    $alias
-                )
-            );
-        }
-
         $this->boundManager->deleteBond($alias);
 
         return $this;
