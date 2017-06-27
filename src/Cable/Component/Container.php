@@ -706,7 +706,7 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
 
-            $bounded[$name] = $this->resolveArgument($parameter->getClass());
+            $bounded[$name] = $this->resolveArgument($parameter->getClass()->name);
 
         }
 
