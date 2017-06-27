@@ -5,6 +5,7 @@ namespace Cable\Container\Annotations;
 
 use Cable\Annotation\Annotation;
 use Cable\Annotation\Parser;
+use Cable\Container\ReflectionException;
 use Cable\Container\ServiceProvider;
 use function foo\func;
 
@@ -21,6 +22,8 @@ class AnnotationServiceProvider extends ServiceProvider
     /**
      * register the content
      *
+     * @throws Parser\Exception\ParserException
+     * @throws \ReflectionException
      * @return mixed
      */
     public function register()
@@ -28,7 +31,9 @@ class AnnotationServiceProvider extends ServiceProvider
         $this->getContainer()->add(Annotation::class, function() {
             Annotation::setContainer($this->getContainer());
 
-            return new Annotation((new Parser())->skipPhpDoc());
+            $annotation =  new Annotation((new Parser())->skipPhpDoc());
+
+            return $annotation->addCommand(new Inject());
         });
     }
 }
