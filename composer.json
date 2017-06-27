@@ -19,6 +19,7 @@
   },
   "minimum-stability": "stable",
   "require": {
-    "psr/container": "^1.0"
+    "psr/container": "^1.0",
+    "cable/cable-annotations": "^1.0"
   }
 }

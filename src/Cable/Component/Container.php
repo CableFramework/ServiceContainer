@@ -78,20 +78,15 @@ class Container implements ContainerInterface, \ArrayAccess
 
     /**
      * Container constructor.
-     * @param BoundManager $boundManager
-     * @param MethodManager $methodManager
-     * @param ArgumentManager $argumentManager
      * @param ProviderRepository|null $providerRepository
      */
-    public function __construct(BoundManager $boundManager,
-                                MethodManager $methodManager,
-                                ArgumentManager $argumentManager,
+    public function __construct(
                                 ProviderRepository $providerRepository = null
     )
     {
-        $this->boundManager = $boundManager;
-        $this->methodManager = $methodManager;
-        $this->argumentManager = $argumentManager;
+        $this->boundManager = new BoundManager();
+        $this->methodManager = new MethodManager();
+        $this->argumentManager = new ArgumentManager();
         $this->providers = $providerRepository;
 
 
@@ -510,13 +505,19 @@ class Container implements ContainerInterface, \ArrayAccess
         $parameters = [];
 
         if (null !== $constructor) {
+            $this->resolveAnnotations($constructor);
+
             $parameters = $this->resolveParameters(
-                $constructor->getParameters(),
+                $constructor,
                 $this->argumentManager->getClassArgs($alias)
             );
         }
 
         return $class->newInstanceArgs($parameters);
+    }
+
+    private function resolveAnnotations(\ReflectionFunctionAbstract $abstract){
+
     }
 
     /**
@@ -536,7 +537,7 @@ class Container implements ContainerInterface, \ArrayAccess
         }
 
         $parameters = $this->resolveParameters(
-            $reflectionFunction->getParameters(),
+            $reflectionFunction,
             $this->argumentManager->getClassArgs($alias)
         );
 
@@ -558,7 +559,7 @@ class Container implements ContainerInterface, \ArrayAccess
     private function resolveMethod($alias, $method, $instance, \ReflectionMethod $abstract)
     {
         $parameters = $this->resolveParameters(
-            $abstract->getParameters(),
+            $abstract,
             $this->getArgumentManager()
                 ->getMethodArgs($alias, $method)
         );
@@ -567,7 +568,7 @@ class Container implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * @param \ReflectionParameter[] $parameters
+     * @param \ReflectionFunctionAbstract $abstract
      * @param array $args
      * @throws ExpectationException
      * @throws NotFoundException
@@ -575,14 +576,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws ArgumentException
      * @return array
      */
-    private function resolveParameters(array $parameters, array $args)
+    private function resolveParameters(\ReflectionFunctionAbstract $abstract, array $args)
     {
         $bounded = [];
-
+        $parameters = $abstract->getParameters();
 
         foreach ($parameters as $parameter) {
-
-
             $name = $parameter->getName();
 
             if (null !== ($class = $this->isClass($parameter))) {
