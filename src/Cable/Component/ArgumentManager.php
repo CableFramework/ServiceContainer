@@ -86,9 +86,10 @@ class ArgumentManager
      */
     public function give($alias, $argument, ContextDefinition $callback)
     {
-        if (strpos($alias, ".") === false) {
+        if (strpos($alias, "::") === false) {
             $this->classArgs[$alias][$argument] = $callback;
         } else {
+            $alias = str_replace("::", ".", $alias);
             $this->methodArgs[$alias][$argument] = $callback;
         }
 

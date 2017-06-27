@@ -686,11 +686,12 @@ class Container implements ContainerInterface, \ArrayAccess
      * @throws ExpectationException
      * @throws ArgumentException
      * @param \ReflectionMethod $abstract
+     * @throws ContainerNotFoundException
      * @return mixed
      */
     private function resolveMethod($alias, $method, $instance, \ReflectionMethod $abstract)
     {
-        $this->resolveInjectAnnotations($abstract, $alias);
+        $this->resolveInjectAnnotations($abstract, "$alias.$method");
 
 
         $parameters = $this->resolveParameters(
