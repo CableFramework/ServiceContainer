@@ -836,6 +836,21 @@ class Container implements ContainerInterface, \ArrayAccess
 
 
     /**
+     * @param string $alias
+     * @return $this
+     */
+    public function remove($alias){
+        if ($this->boundManager->has($alias)) {
+            $this->removeResolvedFromBound($alias);
+        }
+
+        if (isset($this->resolved[$alias])) {
+            unset($this->resolved[$alias]);
+        }
+
+        return $this;
+    }
+    /**
      * @param string $shared
      * @param string $alias
      */
